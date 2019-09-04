@@ -2,16 +2,70 @@ package squircy2_compat
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
+	"github.com/dop251/goja"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
 
+	"code.dopame.me/veonik/squircy3/event"
 	"code.dopame.me/veonik/squircy3/irc"
+	"code.dopame.me/veonik/squircy3/plugins/squircy2_compat/data"
+	"code.dopame.me/veonik/squircy3/vm"
 )
+
+type Config struct {
+	EnableFileAPI bool `toml:"enable_file_api"`
+	FileAPIPath string `toml:"file_api_root"`
+	OwnerNick string `toml:"owner_nick"`
+	OwnerHost string `toml:"owner_host"`
+	DataPath string `toml:"data_path"`
+}
+
+type callback struct {
+	eventType string
+	callable goja.Callable
+	handler  event.Handler
+}
+
+type HelperSet struct {
+	*Config
+
+	events *event.Dispatcher
+	vm     *vm.VM
+
+	db *data.DB
+
+	http httpHelper
+	file fileHelper
+	conf configHelper
+	irc  ircHelper
+
+	funcs map[string]callback
+}
+
+func NewHelperSet(e *event.Dispatcher, v *vm.VM, i *irc.Manager) *HelperSet {
+	return &HelperSet{
+		events: e,
+		vm:     v,
+		irc:    ircHelper{i},
+		http:   httpHelper{
+			Client: &http.Client{Transport: &http.Transport{}},
+		},
+	}
+}
+
+func (p *HelperSet) Configure(c Config) error {
+	p.Config = &c
+	p.file = fileHelper{c.EnableFileAPI, c.FileAPIPath}
+	p.conf = configHelper{c.OwnerNick, c.OwnerHost}
+	p.db = data.NewDatabaseConnection(c.DataPath, logrus.StandardLogger())
+	return nil
+}
 
 type httpHelper struct {
 	*http.Client
@@ -169,5 +223,5 @@ func (h *fileHelper) ReadAll(name string) (string, error) {
 		return "", fmt.Errorf("file: path does not exist within configured root: %s", p)
 	}
 	res, err := ioutil.ReadFile(p)
-	return string(res), err
+	return string(res), errors.Wrapf(err, "file: failed to read file: %s", p)
 }

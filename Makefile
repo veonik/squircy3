@@ -33,10 +33,10 @@ run: build
 
 .SECONDEXPANSION:
 $(PLUGIN_TARGETS): $(OUTPUT_BASE)/%.so: $$(wildcard plugins_shared/%/*) $(SOURCES)
-	go build -race -o $@ -buildmode=plugin plugins_shared/$*/*.go
+	go build -tags shared -race -o $@ -buildmode=plugin plugins_shared/$*/*.go
 
 $(SQUIRCY_TARGET): $(SOURCES)
-	go build -race -o $@ cmd/squircy/*.go
+	go build -tags shared -race -o $@ cmd/squircy/*.go
 
 $(OUTPUT_BASE)/.generated: $(GENERATOR_SOURCES)
 	go generate

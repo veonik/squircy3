@@ -58,7 +58,7 @@ func (p *vmPlugin) Configure(conf config.Config) error {
 }
 
 func (p *vmPlugin) Options() []config.SetupOption {
-	return []config.SetupOption{config.WithRequiredOption("modules_path"), config.WithOption("enable_babel")}
+	return []config.SetupOption{config.WithRequiredOption("modules_path")}
 }
 
 func (p *vmPlugin) Name() string {

@@ -69,15 +69,15 @@ func (vm *VM) Start() error {
 func (vm *VM) Shutdown() (err error) {
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
-	go func() {
+	go func(done chan struct{}) {
 		select {
-		case <-vm.done:
+		case <-done:
 			// do nothing, already closed
 		default:
 			err = vm.scheduler.stop()
-			close(vm.done)
+			close(done)
 		}
-	}()
+	}(vm.done)
 	select {
 	case <-vm.done:
 		// all done, nothing to do

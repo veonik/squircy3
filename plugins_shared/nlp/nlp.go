@@ -1,8 +1,8 @@
+//+build shared
+
 package main
 
 import "code.dopame.me/veonik/squircy3/plugin"
-
-func main() {}
 
 type nlp struct{}
 

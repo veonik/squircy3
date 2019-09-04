@@ -2,6 +2,7 @@ package event // import "code.dopame.me/veonik/squircy3/event"
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"sync"
 )
 
@@ -69,6 +70,7 @@ func (d *Dispatcher) Unbind(name string, handler Handler) {
 	hi := fmt.Sprintf("%v", handler)
 	hs, ok := d.handlers[name]
 	if !ok {
+		logrus.Debugln("not unbinding anything for", name, handler, hi)
 		return
 	}
 	i := -1
@@ -76,21 +78,15 @@ func (d *Dispatcher) Unbind(name string, handler Handler) {
 		ohi := fmt.Sprintf("%v", h)
 		if hi == ohi {
 			i = j
+			logrus.Debugln("unbinding", name, handler, hi)
 			break
 		}
 	}
 	if i < 0 {
+		logrus.Debugln("not unbinding anything for", name, handler, hi)
 		return
 	}
 	d.handlers[name] = append(hs[:i], hs[i+1:]...)
-}
-
-func (d *Dispatcher) UnbindAll(name string) error {
-	return nil
-}
-
-func (d *Dispatcher) UnbindAllHandlers() error {
-	return nil
 }
 
 func (d *Dispatcher) Emit(name string, data map[string]interface{}) {

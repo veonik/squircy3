@@ -1,4 +1,4 @@
-FROM golang:stretch AS build
+FROM golang:buster AS build
 
 WORKDIR /squircy
 
@@ -29,9 +29,8 @@ USER squircy
 
 WORKDIR /squircy
 
-COPY --from=build /squircy/out /squircy/out
+COPY --from=build /squircy/out/squircy /bin/squircy
 
-RUN mkdir -p /home/squircy/.squircy/plugins && \
-    ln -sfv /squircy/out/*.so /home/squircy/.squircy/plugins/
+COPY --from=build /squircy/out/*.so /squircy/plugins/
 
-CMD out/squircy
+CMD /bin/squircy

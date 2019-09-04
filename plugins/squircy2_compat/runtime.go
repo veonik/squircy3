@@ -1,6 +1,7 @@
 package squircy2_compat
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	"code.dopame.me/veonik/squircy3/event"
@@ -10,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+
 // must logs the given error as a warning
 func must(err error) {
 	if err != nil {
@@ -17,7 +19,7 @@ func must(err error) {
 	}
 }
 
-func (p *shimPlugin) initRuntime(gr *goja.Runtime) {
+func (p *HelperSet) Enable(gr *goja.Runtime) {
 	p.setDispatcher(gr)
 	p.setAsyncFunc(gr)
 	p.setDataHelper(gr)
@@ -28,18 +30,17 @@ func (p *shimPlugin) initRuntime(gr *goja.Runtime) {
 	gr.Set("File", p.fileHelper(gr))
 }
 
-func (p *shimPlugin) setDispatcher(gr *goja.Runtime) {
+func (p *HelperSet) setDispatcher(gr *goja.Runtime) {
 	getFnName := func(fn goja.Value) (name string) {
-		if v, ok := goja.AssertFunction(fn); ok {
-			return fmt.Sprintf("__Handler%v", v)
+		s := sha256.Sum256([]byte(fmt.Sprintf("%v", fn)))
+		return fmt.Sprintf("__Handler%x", s)
+	}
+	if p.funcs != nil {
+		for _, f := range p.funcs {
+			p.events.Unbind(f.eventType, f.handler)
 		}
-		return fn.String()
 	}
-	type callback struct {
-		callable goja.Callable
-		handler  event.Handler
-	}
-	funcs := map[string]callback{}
+	p.funcs = map[string]callback{}
 	gr.Set("bind", func(call goja.FunctionCall) goja.Value {
 		eventType := call.Argument(0).String()
 		arg1 := call.Argument(1)
@@ -58,7 +59,7 @@ func (p *shimPlugin) setDispatcher(gr *goja.Runtime) {
 					}
 				})
 			}
-			funcs[fnName] = callback{callable: fn, handler: h}
+			p.funcs[fnName] = callback{eventType: eventType, callable: fn, handler: h}
 			p.events.Bind(eventType, h)
 			return gr.ToValue(fnName)
 		}
@@ -69,9 +70,9 @@ func (p *shimPlugin) setDispatcher(gr *goja.Runtime) {
 		eventType := call.Argument(0).String()
 		arg1 := call.Argument(1)
 		fnName := getFnName(arg1)
-		if in, ok := funcs[fnName]; ok {
+		if in, ok := p.funcs[fnName]; ok {
 			p.events.Unbind(eventType, in.handler)
-			delete(funcs, fnName)
+			delete(p.funcs, fnName)
 		} else {
 			logrus.Debugln("unbind called with unknown (or unbound) handler", eventType, arg1, fnName)
 		}
@@ -90,7 +91,7 @@ func (p *shimPlugin) setDispatcher(gr *goja.Runtime) {
 	gr.Set("emit", emit)
 }
 
-func (p *shimPlugin) setAsyncFunc(gr *goja.Runtime) {
+func (p *HelperSet) setAsyncFunc(gr *goja.Runtime) {
 	gr.Set("async", func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 2 {
 			panic(gr.NewTypeError("expected 2 arguments"))
@@ -115,7 +116,7 @@ func (p *shimPlugin) setAsyncFunc(gr *goja.Runtime) {
 	})
 }
 
-func (p *shimPlugin) setDataHelper(gr *goja.Runtime) {
+func (p *HelperSet) setDataHelper(gr *goja.Runtime) {
 	gr.Set("use", func(call goja.FunctionCall) goja.Value {
 		coll := call.Argument(0).String()
 		db := data.NewGenericRepository(p.db, coll)
@@ -181,7 +182,7 @@ func (p *shimPlugin) setDataHelper(gr *goja.Runtime) {
 	})
 }
 
-func (p *shimPlugin) ircHelper(gr *goja.Runtime) *goja.Object {
+func (p *HelperSet) ircHelper(gr *goja.Runtime) *goja.Object {
 	v := gr.NewObject()
 	must(v.Set("Connect", (&p.irc).Connect))
 	must(v.Set("Disconnect", (&p.irc).Disconnect))
@@ -195,7 +196,7 @@ func (p *shimPlugin) ircHelper(gr *goja.Runtime) *goja.Object {
 	return v
 }
 
-func (p *shimPlugin) httpHelper(gr *goja.Runtime) *goja.Object {
+func (p *HelperSet) httpHelper(gr *goja.Runtime) *goja.Object {
 	v := gr.NewObject()
 	must(v.Set("Send", func(call goja.FunctionCall) goja.Value {
 		o := call.Argument(0).ToObject(gr)
@@ -250,7 +251,7 @@ func (p *shimPlugin) httpHelper(gr *goja.Runtime) *goja.Object {
 	return v
 }
 
-func (p *shimPlugin) fileHelper(gr *goja.Runtime) *goja.Object {
+func (p *HelperSet) fileHelper(gr *goja.Runtime) *goja.Object {
 	v := gr.NewObject()
 	must(v.Set("ReadAll", func(call goja.FunctionCall) goja.Value {
 		res, err := p.file.ReadAll(call.Argument(0).String())

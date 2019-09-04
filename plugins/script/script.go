@@ -1,4 +1,4 @@
-package script // import "code.dopame.me/veonik/squircy3/script"
+package script // import "code.dopame.me/veonik/squircy3/plugins/script"
 
 import (
 	"io/ioutil"

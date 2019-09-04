@@ -15,6 +15,7 @@ import (
 )
 
 type Registry struct {
+	basePath  string
 	modules   map[string]*Module
 	main      *Module
 	Transform func(in string) (string, error)
@@ -24,13 +25,13 @@ func NewRegistry(basePath string) *Registry {
 	if filepath.Base(basePath) == "node_modules" {
 		basePath = filepath.Dir(basePath)
 	}
-	r := &Registry{modules: make(map[string]*Module)}
+	r := &Registry{basePath: basePath, modules: make(map[string]*Module)}
 	r.main = &Module{
 		Name: ".",
-		Path: basePath,
+		Path: r.basePath,
 		root: &Module{
 			Name:     "node_modules",
-			Path:     filepath.Join(basePath, "node_modules"),
+			Path:     filepath.Join(r.basePath, "node_modules"),
 			registry: r,
 		},
 		registry: r,
@@ -38,7 +39,15 @@ func NewRegistry(basePath string) *Registry {
 	return r
 }
 
+func (r *Registry) reset() {
+	for _, m := range r.modules {
+		// clear the evaluated values
+		m.value = nil
+	}
+}
+
 func (r *Registry) Enable(runtime *goja.Runtime) {
+	r.reset()
 	runtime.Set("require", require(runtime, r.main, nil))
 }
 

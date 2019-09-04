@@ -31,7 +31,7 @@ func (p *babelPlugin) Configure(c config.Config) error {
 }
 
 func (p *babelPlugin) Options() []config.SetupOption {
-	return []config.SetupOption{}
+	return []config.SetupOption{config.WithOption("enable")}
 }
 
 func (p *babelPlugin) Name() string {
