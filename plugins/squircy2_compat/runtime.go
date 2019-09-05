@@ -13,9 +13,9 @@ import (
 
 
 // must logs the given error as a warning
-func must(err error) {
+func must(what string, err error) {
 	if err != nil {
-		logrus.Warnln("error initializing squiryc2_compat:", err)
+		logrus.Warnf("squiryc2_compat: error %s: %s", what, err)
 	}
 }
 
@@ -121,7 +121,10 @@ func (p *HelperSet) setDataHelper(gr *goja.Runtime) {
 		coll := call.Argument(0).String()
 		db := data.NewGenericRepository(p.db, coll)
 		obj := gr.NewObject()
-		must(obj.Set("Save", func(call goja.FunctionCall) goja.Value {
+		what := func(do string) string {
+			return fmt.Sprintf("binding %s for collection %s", do, coll)
+		}
+		must(what("Save"), obj.Set("Save", func(call goja.FunctionCall) goja.Value {
 			exp := call.Argument(0).Export()
 			var model data.GenericModel
 			switch t := exp.(type) {
@@ -148,22 +151,22 @@ func (p *HelperSet) setDataHelper(gr *goja.Runtime) {
 
 			return gr.ToValue(model["ID"])
 		}))
-		must(obj.Set("Delete", func(call goja.FunctionCall) goja.Value {
+		must(what("Delete"), obj.Set("Delete", func(call goja.FunctionCall) goja.Value {
 			i := call.Argument(0).ToInteger()
 			db.Delete(int(i))
 
 			return gr.ToValue(true)
 		}))
-		must(obj.Set("Fetch", func(call goja.FunctionCall) goja.Value {
+		must(what("Fetch"), obj.Set("Fetch", func(call goja.FunctionCall) goja.Value {
 			i := call.Argument(0).ToInteger()
 			val := db.Fetch(int(i))
 			return gr.ToValue(val)
 		}))
-		must(obj.Set("FetchAll", func(call goja.FunctionCall) goja.Value {
+		must(what("FetchAll"), obj.Set("FetchAll", func(call goja.FunctionCall) goja.Value {
 			vals := db.FetchAll()
 			return gr.ToValue(vals)
 		}))
-		must(obj.Set("Index", func(call goja.FunctionCall) goja.Value {
+		must(what("Index"), obj.Set("Index", func(call goja.FunctionCall) goja.Value {
 			exp := call.Argument(0).Export()
 			cols := make([]string, 0)
 			for _, val := range exp.([]interface{}) {
@@ -173,7 +176,7 @@ func (p *HelperSet) setDataHelper(gr *goja.Runtime) {
 
 			return goja.Undefined()
 		}))
-		must(obj.Set("Query", func(call goja.FunctionCall) goja.Value {
+		must(what("Query"), obj.Set("Query", func(call goja.FunctionCall) goja.Value {
 			qry := call.Argument(0).Export()
 			vals := db.Query(qry)
 			return gr.ToValue(vals)
@@ -184,21 +187,21 @@ func (p *HelperSet) setDataHelper(gr *goja.Runtime) {
 
 func (p *HelperSet) ircHelper(gr *goja.Runtime) *goja.Object {
 	v := gr.NewObject()
-	must(v.Set("Connect", (&p.irc).Connect))
-	must(v.Set("Disconnect", (&p.irc).Disconnect))
-	must(v.Set("Privmsg", (&p.irc).Privmsg))
-	must(v.Set("Nick", (&p.irc).Nick))
-	must(v.Set("CurrentNick", (&p.irc).CurrentNick))
-	must(v.Set("Action", (&p.irc).Action))
-	must(v.Set("Join", (&p.irc).Join))
-	must(v.Set("Part", (&p.irc).Part))
-	must(v.Set("Raw", (&p.irc).Raw))
+	must("binding Irc.Connect", v.Set("Connect", (&p.irc).Connect))
+	must("binding Irc.Disconnect", v.Set("Disconnect", (&p.irc).Disconnect))
+	must("binding Irc.Privmsg", v.Set("Privmsg", (&p.irc).Privmsg))
+	must("binding Irc.Nick", v.Set("Nick", (&p.irc).Nick))
+	must("binding Irc.CurrentNick", v.Set("CurrentNick", (&p.irc).CurrentNick))
+	must("binding Irc.Action", v.Set("Action", (&p.irc).Action))
+	must("binding Irc.Join", v.Set("Join", (&p.irc).Join))
+	must("binding Irc.Part", v.Set("Part", (&p.irc).Part))
+	must("binding Irc.Raw", v.Set("Raw", (&p.irc).Raw))
 	return v
 }
 
 func (p *HelperSet) httpHelper(gr *goja.Runtime) *goja.Object {
 	v := gr.NewObject()
-	must(v.Set("Send", func(call goja.FunctionCall) goja.Value {
+	must("binding Http.Send", v.Set("Send", func(call goja.FunctionCall) goja.Value {
 		o := call.Argument(0).ToObject(gr)
 
 		url := o.Get("url").String()
@@ -239,27 +242,27 @@ func (p *HelperSet) httpHelper(gr *goja.Runtime) *goja.Object {
 			if cb, ok := goja.AssertFunction(successCb); ok {
 				p.vm.Do(func(r *goja.Runtime) {
 					_, err := cb(nil, r.ToValue(res))
-					must(err)
+					must("running Http.Send callback", err)
 				})
 			}
 		}()
 
 		return goja.Undefined()
 	}))
-	must(v.Set("Get", (&p.http).Get))
-	must(v.Set("Post", (&p.http).Post))
+	must("binding Http.Get", v.Set("Get", (&p.http).Get))
+	must("binding Http.Post", v.Set("Post", (&p.http).Post))
 	return v
 }
 
 func (p *HelperSet) fileHelper(gr *goja.Runtime) *goja.Object {
 	v := gr.NewObject()
-	must(v.Set("ReadAll", func(call goja.FunctionCall) goja.Value {
+	must("binding File.ReadAll", v.Set("ReadAll", func(call goja.FunctionCall) goja.Value {
 		res, err := p.file.ReadAll(call.Argument(0).String())
 		if err != nil {
 			panic(gr.NewGoError(err))
 		}
 		return gr.ToValue(res)
 	}))
-	must(v.Set("readAll", v.Get("ReadAll")))
+	must("binding File.readAll", v.Set("readAll", v.Get("ReadAll")))
 	return v
 }
