@@ -32,7 +32,7 @@ func (p *nodeCompatPlugin) HandleRuntimeInit(r *goja.Runtime) {
 	}
 	v := r.NewObject()
 	if err := v.Set("Command", NewProcess); err != nil {
-		logrus.Warnln("%s: error initializing runtime:", pluginName, err)
+		logrus.Warnf("%s: error initializing runtime: %s", pluginName, err)
 	}
 	r.Set("exec", v)
 	_, err := r.RunString(`this.global = this.global || this;
@@ -40,7 +40,7 @@ require('core-js-bundle');
 this.process = this.process || require('process/browser');
 require('regenerator-runtime');`)
 	if err != nil {
-		logrus.Warnln("%s: error initializing runtime:", pluginName, err)
+		logrus.Warnf("%s: error initializing runtime: %s", pluginName, err)
 	}
 }
 

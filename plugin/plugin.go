@@ -130,7 +130,7 @@ func (m *Manager) Configure() []error {
 		m.mu.Unlock()
 		if ok {
 			// plugin was already loaded
-			errs = append(errs, errors.Errorf("plugin already loaded", pn))
+			errs = append(errs, errors.Errorf("plugin already loaded %s", pn))
 			continue
 		}
 		// run other plugin init handlers
