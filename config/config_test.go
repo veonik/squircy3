@@ -1,9 +1,10 @@
 package config_test
 
 import (
-	"code.dopame.me/veonik/squircy3/config"
 	"fmt"
 	"testing"
+
+	"code.dopame.me/veonik/squircy3/config"
 )
 
 func TestWrap(t *testing.T) {

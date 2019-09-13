@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/fatih/structtag"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"reflect"
 )
 
 type configurableOpts map[string]Value
@@ -155,6 +156,23 @@ func (i *valueInspector) Set(name string, val Value) {
 	}
 	if !m.CanSet() {
 		return
+	}
+	if m.Kind() == reflect.Slice {
+		switch m.Type().Elem().Kind() {
+		case reflect.String:
+			var res []string
+			if v, ok := val.([]interface{}); ok {
+				for _, vv := range v {
+					if vs, ok := vv.(string); ok {
+						res = append(res, vs)
+					}
+				}
+			}
+			rv = reflect.ValueOf(res)
+		default:
+			logrus.Warnf("config: unsupported slice type: %s", i.value.Index(0).Kind())
+			return
+		}
 	}
 	trySet(m, rv)
 }

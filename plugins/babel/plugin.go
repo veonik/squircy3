@@ -21,7 +21,7 @@ func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
 }
 
 type babelPlugin struct {
-	vm *vm.VM
+	vm     *vm.VM
 	enable bool
 }
 

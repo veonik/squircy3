@@ -82,7 +82,7 @@ func (s *scheduler) initRuntime() error {
 			})
 			r.Set("setImmediate", func(call goja.FunctionCall) goja.Value {
 				args := call.Arguments[1:]
-				call.Arguments = append([]goja.Value{call.Arguments[0], r.ToValue(1*time.Microsecond)}, args...)
+				call.Arguments = append([]goja.Value{call.Arguments[0], r.ToValue(1 * time.Microsecond)}, args...)
 				return s.deferred(call, false)
 			})
 			r.Set("clearTimeout", cancelDeferredJob)

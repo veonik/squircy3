@@ -2,8 +2,9 @@ package event // import "code.dopame.me/veonik/squircy3/event"
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"sync"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Event struct {

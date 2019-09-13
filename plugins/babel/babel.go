@@ -13,12 +13,12 @@ type Babel struct {
 
 func NewBabel(r *goja.Runtime) (*Babel, error) {
 	b := &Babel{runtime: r}
-	v, err := b.runtime.RunString(`this.global = this;
+	v, err := b.runtime.RunString(`
+this.global = this.global || this;
+this.process = this.process || require('process/browser');
 require('core-js-bundle');
-this.process = require('process/browser'); 
 this.Babel = require('@babel/standalone');
-var plugin = require('regenerator-transform'); 
-require('regenerator-runtime'); 
+var plugin = require('regenerator-transform');
 var transform = function(src) { 
     var res = Babel.transform(src, {presets: ['es2015'], plugins: [plugin]}); 
     return res.code; 

@@ -1,13 +1,13 @@
 package main
 
 import (
-	"code.dopame.me/veonik/squircy3/plugins/babel"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/pkg/errors"
 
@@ -15,7 +15,6 @@ import (
 	"code.dopame.me/veonik/squircy3/event"
 	"code.dopame.me/veonik/squircy3/irc"
 	"code.dopame.me/veonik/squircy3/plugin"
-	"code.dopame.me/veonik/squircy3/plugins/script"
 	"code.dopame.me/veonik/squircy3/vm"
 )
 
@@ -42,8 +41,8 @@ func NewManager(rootDir string, extraPlugins ...string) (*Manager, error) {
 		return nil, err
 	}
 	conf := Config{
-		RootDir: rootDir,
-		PluginDir: filepath.Join(rootDir, "plugins"),
+		RootDir:      rootDir,
+		PluginDir:    filepath.Join(rootDir, "plugins"),
 		ExtraPlugins: extraPlugins,
 	}
 	// configure the config plugin!
@@ -56,8 +55,8 @@ func NewManager(rootDir string, extraPlugins ...string) (*Manager, error) {
 	}
 	return &Manager{
 		plugins: m,
-		sig: make(chan os.Signal),
-		Config: conf,
+		sig:     make(chan os.Signal),
+		Config:  conf,
 	}, nil
 }
 
@@ -68,11 +67,19 @@ func (manager *Manager) Loop() error {
 	m.RegisterFunc(event.Initialize)
 	m.RegisterFunc(vm.Initialize)
 	m.RegisterFunc(irc.Initialize)
-	m.RegisterFunc(babel.Initialize)
-	m.RegisterFunc(script.Initialize)
-	m.Register(plugin.InitializeFromFile(filepath.Join(manager.PluginDir, "squircy2_compat.so")))
 	if err := configure(m); err != nil {
 		return errors.Wrap(err, "unable to init built-in plugins")
+	}
+
+	// load remaining extra plugins
+	for _, pl := range manager.ExtraPlugins {
+		if !filepath.IsAbs(pl) {
+			pl = filepath.Join(manager.PluginDir, pl)
+		}
+		m.Register(plugin.InitializeFromFile(pl))
+	}
+	if err := configure(m); err != nil {
+		return errors.Wrap(err, "unable to init extra plugins")
 	}
 
 	// start the event dispatcher
@@ -90,17 +97,6 @@ func (manager *Manager) Loop() error {
 	err = myVM.Start()
 	if err != nil {
 		return errors.Wrap(err, "unable to start vm")
-	}
-
-	// load remaining extra plugins
-	for _, pl := range manager.ExtraPlugins {
-		if !filepath.IsAbs(pl) {
-			pl = filepath.Join(manager.PluginDir, pl)
-		}
-		m.Register(plugin.InitializeFromFile(pl))
-	}
-	if err := configure(m); err != nil {
-		return errors.Wrap(err, "unable to init extra plugins")
 	}
 
 	st := make(chan os.Signal)
@@ -123,6 +119,10 @@ func (manager *Manager) Loop() error {
 			}
 
 		case <-manager.sig:
+			logrus.Infoln("shutting down")
+			if err := myVM.Shutdown(); err != nil {
+				logrus.Warnln("error stopping vm:", err)
+			}
 			return nil
 		}
 	}

@@ -11,7 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-
 // must logs the given error as a warning
 func must(what string, err error) {
 	if err != nil {

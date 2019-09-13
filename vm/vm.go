@@ -24,6 +24,10 @@ func New(registry *Registry) (*VM, error) {
 	return &VM{registry: registry, scheduler: newScheduler(registry)}, nil
 }
 
+func (vm *VM) SetModule(module *Module) {
+	vm.registry.SetModule(module)
+}
+
 func (vm *VM) PrependRuntimeInit(h func(*goja.Runtime)) {
 	vm.scheduler.prependRuntimeInit(h)
 }
