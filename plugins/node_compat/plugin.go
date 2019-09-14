@@ -1,6 +1,8 @@
-package node_compat
+package main // import "code.dopame.me/veonik/squircy3/plugins/node_compat"
 
 import (
+	"fmt"
+
 	"github.com/dop251/goja"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -11,6 +13,10 @@ import (
 )
 
 const pluginName = "node_compat"
+
+func main() {
+	fmt.Println(pluginName, "- a plugin for squircy3")
+}
 
 func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
 	vmp, err := vm.FromPlugins(m)

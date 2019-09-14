@@ -78,7 +78,7 @@ func require(runtime *goja.Runtime, parent *Module, stack []string) func(goja.Fu
 			panic(runtime.NewGoError(err))
 		}
 		if module.value != nil {
-			return module.value
+			return module.value.Get("exports")
 		}
 		logrus.Warnln("requiring", module.FullPath())
 		etag := sha256.Sum256([]byte(module.Body))
@@ -131,17 +131,17 @@ func require(runtime *goja.Runtime, parent *Module, stack []string) func(goja.Fu
 			stack = stack[:len(stack)-1]
 		}()
 		req := runtime.ToValue(require(runtime, module, stack))
-		mod := runtime.NewObject()
-		err = mod.Set("exports", runtime.NewObject())
+		module.value = runtime.NewObject()
+		err = module.value.Set("exports", runtime.NewObject())
 		if err != nil {
 			panic(runtime.NewGoError(err))
 		}
-		_, err = cb(nil, req, mod, mod.Get("exports"))
+		_, err = cb(nil, req, module.value, module.value.Get("exports"))
 		if err != nil {
 			panic(runtime.NewGoError(err))
 		}
-		module.value = mod.Get("exports")
-		return module.value
+
+		return module.value.Get("exports")
 	}
 }
 
@@ -157,7 +157,7 @@ type Module struct {
 	root     *Module
 	registry *Registry
 
-	value goja.Value
+	value *goja.Object
 }
 
 func (m *Module) Require(name string) (*Module, error) {

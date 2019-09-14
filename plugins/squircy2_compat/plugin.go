@@ -1,6 +1,8 @@
-package squircy2_compat
+package main // import "code.dopame.me/veonik/squircy3/plugins/squircy2_compat"
 
 import (
+	"fmt"
+
 	"code.dopame.me/veonik/squircy3/config"
 	"code.dopame.me/veonik/squircy3/event"
 	"code.dopame.me/veonik/squircy3/irc"
@@ -12,6 +14,10 @@ import (
 )
 
 const pluginName = "squircy2_compat"
+
+func main() {
+	fmt.Println(pluginName, "- a plugin for squircy3")
+}
 
 func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
 	im, err := irc.FromPlugins(m)

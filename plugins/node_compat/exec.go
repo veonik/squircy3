@@ -1,4 +1,4 @@
-package node_compat
+package main
 
 import (
 	"bytes"

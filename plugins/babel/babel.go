@@ -1,4 +1,4 @@
-package babel
+package main
 
 import (
 	"github.com/dop251/goja"

@@ -1,9 +1,9 @@
 # Makefile for squircy, a proper IRC bot.
 # https://code.dopame.me/veonik/squircy3
 
-SUBPACKAGES := config event irc plugin script vm $(wildcard plugins/*)
+SUBPACKAGES := config event irc plugin script vm
 
-PLUGINS := $(patsubst plugins_shared/%,%,$(wildcard plugins_shared/*))
+PLUGINS := $(patsubst plugins/%,%,$(wildcard plugins/*))
 
 SOURCES := $(wildcard cmd/*/*.go) $(wildcard $(patsubst %,%/*.go,$(SUBPACKAGES)))
 GENERATOR_SOURCES := $(wildcard web/views/*.twig) $(wildcard web/views/*/*.twig) $(wildcard web/public/css/*.css)
@@ -32,11 +32,11 @@ run: build
 	$(SQUIRCY_TARGET)
 
 .SECONDEXPANSION:
-$(PLUGIN_TARGETS): $(OUTPUT_BASE)/%.so: $$(wildcard plugins_shared/%/*) $(SOURCES)
-	go build -tags shared -race -o $@ -buildmode=plugin plugins_shared/$*/*.go
+$(PLUGIN_TARGETS): $(OUTPUT_BASE)/%.so: $$(wildcard plugins/%/*) $(SOURCES)
+	go build -tags netgo -race -o $@ -buildmode=plugin plugins/$*/*.go
 
 $(SQUIRCY_TARGET): $(SOURCES)
-	go build -tags shared -race -o $@ cmd/squircy/*.go
+	go build -tags netgo -race -o $@ cmd/squircy/*.go
 
 $(OUTPUT_BASE)/.generated: $(GENERATOR_SOURCES)
 	go generate

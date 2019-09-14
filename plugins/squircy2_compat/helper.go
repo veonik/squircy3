@@ -1,4 +1,4 @@
-package squircy2_compat
+package main
 
 import (
 	"bytes"

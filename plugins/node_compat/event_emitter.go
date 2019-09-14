@@ -1,4 +1,4 @@
-package node_compat
+package main
 
 import "code.dopame.me/veonik/squircy3/vm"
 
