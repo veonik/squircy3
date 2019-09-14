@@ -5,12 +5,13 @@ A proper IRC bot.
 
 ## Overview
 
-squircy3 is a cross-platform application written in Go and should work just
-about anywhere. Using a plugin architecture, the bot's capabilities and 
-functionality are expandable to support pretty much anything.
+squircy3 is a cross-platform application written in Go that works nearly
+anywhere. A plugin architecture enables the bot's capabilities and 
+functionality to expand and support anything.
 
 Core plugins provide IRC client functionality, central configuration, and 
-an embedded JavaScript runtime with support for ES6 and beyond.
+an embedded JavaScript runtime. Other built-in plugins provide NodeJS
+compatibility including support for ES6+ features through babel.
 
 
 ## Getting started
@@ -32,3 +33,17 @@ Run `squircy`.
 out/squircy
 ```
 
+### Docker
+
+Run squircy3 in Docker using the `veonik/squircy3` image hosted on Docker Hub.
+
+```bash
+docker run --it veonik/squircy3:latest
+```
+
+## Configuration
+
+squircy3 is configured using the TOML file `config.toml` below the bot's root 
+directory.
+
+> See [config.toml.dist](config.toml.dist) for the reference version of this file.

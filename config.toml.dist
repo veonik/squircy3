@@ -1,0 +1,36 @@
+plugin_path="/squircy/plugins"
+extra_plugins=[
+  "babel.so",
+  "script.so",
+  #"squircy2_compat.so",
+  "node_compat.so",
+]
+
+[irc]
+nick="squishyjones"
+user="mrjones"
+network="chat.freenode.net:6697"
+tls=true
+sasl=false
+#sasl_username=""
+#sasl_password=""
+
+[vm]
+modules_path="/home/squircy/.squircy/scripts/node_modules"
+
+[babel]
+enable=true
+
+[script]
+scripts_path="/home/squircy/.squircy/scripts"
+
+[squircy2_compat]
+enable_file_api=false
+file_api_root="/home/squircy/.squircy/files"
+#owner_nick=""
+#owner_host=""
+data_path="/home/squircy/.squircy/data"
+
+[node_compat]
+enable_exec=false
+

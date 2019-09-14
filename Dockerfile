@@ -20,10 +20,16 @@ RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
     apt-get update && \
     apt-get install -y yarn
 
+COPY config.toml.dist /home/squircy/.squircy/config.toml
+
+COPY package.json /home/squircy/.squircy/scripts/package.json
+
+RUN cd /home/squircy/.squircy/scripts && \
+    yarn install
+
 RUN useradd -d /home/squircy squircy
 
-RUN mkdir -p /home/squircy && \
-    chown -R squircy: /home/squircy
+RUN chown -R squircy: /home/squircy
 
 USER squircy
 
