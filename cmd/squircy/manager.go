@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
 
 	"github.com/sirupsen/logrus"
@@ -55,12 +56,12 @@ func NewManager(rootDir string, extraPlugins ...string) (*Manager, error) {
 	}
 	return &Manager{
 		plugins: m,
-		sig:     make(chan os.Signal),
+		sig:     make(chan os.Signal, 10),
 		Config:  conf,
 	}, nil
 }
 
-func (manager *Manager) Loop() error {
+func (manager *Manager) Start() error {
 	m := manager.plugins
 
 	// init the remaining built-in plugins
@@ -98,8 +99,11 @@ func (manager *Manager) Loop() error {
 	if err != nil {
 		return errors.Wrap(err, "unable to start vm")
 	}
+	return nil
+}
 
-	st := make(chan os.Signal)
+func (manager *Manager) Loop() error {
+	st := make(chan os.Signal, 10)
 	signal.Notify(st, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2)
 	signal.Notify(manager.sig, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -107,12 +111,19 @@ func (manager *Manager) Loop() error {
 		case s := <-st:
 			switch s {
 			case syscall.SIGHUP:
+				myVM, err := vm.FromPlugins(manager.plugins)
+				if err != nil {
+					logrus.Warnln("unable to reload js vm:", err)
+					continue
+				}
 				logrus.Infoln("reloading javascript vm")
 				if err := myVM.Shutdown(); err != nil {
-					return errors.Wrap(err, "unable to reload js vm")
+					logrus.Warnln("unable to reload js vm:", err)
+					continue
 				}
 				if err := myVM.Start(); err != nil {
-					return errors.Wrap(err, "unable to reload js vm")
+					logrus.Warnln("unable to restart js vm:", err)
+					continue
 				}
 			default:
 				logrus.Infoln("received signal", s, "but not doing anything with it")
@@ -120,12 +131,41 @@ func (manager *Manager) Loop() error {
 
 		case <-manager.sig:
 			logrus.Infoln("shutting down")
-			if err := myVM.Shutdown(); err != nil {
-				logrus.Warnln("error stopping vm:", err)
+			if err := manager.Shutdown(); err != nil {
+				logrus.Warnln("error shutting down:", err)
 			}
 			return nil
 		}
 	}
+}
+
+func (manager *Manager) Shutdown() error {
+	m := manager.plugins
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		myVM, err := vm.FromPlugins(m)
+		if err != nil {
+			logrus.Warnln("error shutting down vm:", err)
+		}
+
+		if err := myVM.Shutdown(); err != nil {
+			logrus.Warnln("error shutting down vm:", err)
+		}
+		wg.Done()
+	}()
+	wg.Add(1)
+	go func() {
+		d, err := event.FromPlugins(m)
+		if err != nil {
+			logrus.Warnln("error shutting down events:", err)
+		}
+		d.Stop()
+		wg.Done()
+	}()
+	wg.Wait()
+	return nil
 }
 
 func configure(m *plugin.Manager) error {

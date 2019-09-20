@@ -37,11 +37,13 @@ func (s *stringLevel) Set(str string) error {
 var rootDir string
 var extraPlugins stringsFlag
 var logLevel = stringLevel(logrus.DebugLevel)
+var interactive bool
 
 func init() {
 	flag.StringVar(&rootDir, "root", "~/.squircy", "path to folder containing squircy data")
 	flag.Var(&logLevel, "log-level", "controls verbosity of logging output")
 	flag.Var(&extraPlugins, "plugin", "path to shared plugin .so file, multiple plugins may be given")
+	flag.BoolVar(&interactive, "interactive", false, "start interactive-read-evaluate-print (REPL) session")
 
 	flag.Usage = func() {
 		fmt.Println("Usage: ", os.Args[0], "[options]")
@@ -68,6 +70,14 @@ func main() {
 	m, err := NewManager(rootDir, extraPlugins...)
 	if err != nil {
 		logrus.Fatalln("error initializing squircy:", err)
+	}
+	if err := m.Start(); err != nil {
+		logrus.Fatalln("error starting squircy:", err)
+	}
+	if interactive {
+		go func() {
+			m.Repl()
+		}()
 	}
 	if err = m.Loop(); err != nil {
 		logrus.Fatalln("exiting main loop with error:", err)

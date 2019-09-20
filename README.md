@@ -27,10 +27,10 @@ make all
 The main `squircy` executable and all built plugins will be in `out/` after
 a successful build.
 
-Run `squircy`.
+Run `squircy` in interactive mode with `-interactive`.
 
 ```bash
-out/squircy
+out/squircy -interactive
 ```
 
 ### Docker

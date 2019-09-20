@@ -70,10 +70,12 @@ func (vm *VM) Start() error {
 	return vm.scheduler.start()
 }
 
-func (vm *VM) Shutdown() (err error) {
+func (vm *VM) Shutdown() error {
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
-	go func(done chan struct{}) {
+	done := vm.done
+	var err error
+	go func() {
 		select {
 		case <-done:
 			// do nothing, already closed
@@ -81,12 +83,12 @@ func (vm *VM) Shutdown() (err error) {
 			err = vm.scheduler.stop()
 			close(done)
 		}
-	}(vm.done)
+	}()
 	select {
-	case <-vm.done:
+	case <-done:
 		// all done, nothing to do
 	case <-time.After(time.Second):
-		err = errors.New("timed out waiting for vm to shutdown")
+		return errors.New("timed out waiting for vm to shutdown")
 	}
 	return err
 }
@@ -103,11 +105,12 @@ type Result struct {
 	// this after the result is ready.
 	Value goja.Value
 
+	vmdone chan struct{}
 	cancel chan struct{}
 }
 
 func newResult(vm *VM) *Result {
-	r := &Result{Ready: make(chan struct{}), cancel: make(chan struct{})}
+	r := &Result{Ready: make(chan struct{}), cancel: make(chan struct{}), vmdone: vm.done}
 	go func() {
 		for {
 			select {
@@ -126,7 +129,7 @@ func newResult(vm *VM) *Result {
 				// signal to cancel received, resolve with an error
 				r.resolve(nil, errors.New("execution cancelled"))
 
-			case <-vm.done:
+			case <-r.vmdone:
 				// VM shutdown without resolving, cancel execution
 				close(r.cancel)
 			}

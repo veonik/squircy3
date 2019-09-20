@@ -46,7 +46,7 @@ func (c *Configurable) Get(key string) (Value, bool) {
 	if v, err := c.inspector.Get(key); err == nil {
 		return v, true
 	} else {
-		panic(err)
+		logrus.Warnln("error getting value from config:", err)
 	}
 	return nil, false
 }

@@ -1,10 +1,11 @@
 package main
 
 import (
-	"crypto/sha256"
 	"fmt"
 
 	"code.dopame.me/veonik/squircy3/event"
+	"code.dopame.me/veonik/squircy3/vm"
+
 	"code.dopame.me/veonik/squircy3/plugins/squircy2_compat/data"
 
 	"github.com/dop251/goja"
@@ -29,38 +30,60 @@ func (p *HelperSet) Enable(gr *goja.Runtime) {
 	gr.Set("File", p.fileHelper(gr))
 }
 
-func (p *HelperSet) setDispatcher(gr *goja.Runtime) {
-	getFnName := func(fn goja.Value) (name string) {
-		s := sha256.Sum256([]byte(fmt.Sprintf("%v", fn)))
-		return fmt.Sprintf("__Handler%x", s)
+type callback struct {
+	vm        *vm.VM
+	id        string
+	eventType string
+	callable  goja.Callable
+}
+
+func (p *HelperSet) newCallback(eventType string, id string, callable goja.Callable) *callback {
+	return &callback{
+		vm:        p.vm,
+		id:        id,
+		callable:  callable,
+		eventType: eventType,
 	}
+}
+
+func (cb *callback) ID() string {
+	return cb.id
+}
+
+func (cb *callback) Handle(ev *event.Event) {
+	dat := make(map[string]interface{}, len(ev.Data))
+	for k, v := range ev.Data {
+		dat[k] = v
+	}
+	cb.vm.Do(func(r *goja.Runtime) {
+		d := r.ToValue(dat)
+		_, err := cb.callable(nil, d)
+		if err != nil {
+			logrus.Warnln("error running callback:", err)
+		}
+	})
+}
+
+func (p *HelperSet) setDispatcher(gr *goja.Runtime) {
+	//getFnName := func(fn goja.Value) (name string) {
+	//	s := sha256.Sum256([]byte(fmt.Sprintf("%p", fn)))
+	//	return fmt.Sprintf("__Handler%x", s)
+	//}
 	if p.funcs != nil {
 		for _, f := range p.funcs {
-			p.events.Unbind(f.eventType, f.handler)
+			p.events.Unbind(f.eventType, f)
 		}
 	}
-	p.funcs = map[string]callback{}
+	p.funcs = map[string]*callback{}
 	gr.Set("bind", func(call goja.FunctionCall) goja.Value {
 		eventType := call.Argument(0).String()
 		arg1 := call.Argument(1)
 		if fn, ok := goja.AssertFunction(arg1); ok {
-			fnName := getFnName(arg1)
-			h := func(ev *event.Event) {
-				dat := make(map[string]interface{}, len(ev.Data))
-				for k, v := range ev.Data {
-					dat[k] = v
-				}
-				p.vm.Do(func(r *goja.Runtime) {
-					d := r.ToValue(dat)
-					_, err := fn(nil, d)
-					if err != nil {
-						logrus.Warnln("error running", eventType, "callback:", err)
-					}
-				})
-			}
-			p.funcs[fnName] = callback{eventType: eventType, callable: fn, handler: h}
-			p.events.Bind(eventType, h)
-			return gr.ToValue(fnName)
+			id := fmt.Sprintf("%p", arg1.ToObject(gr))
+			cb := p.newCallback(eventType, id, fn)
+			p.funcs[id] = cb
+			p.events.Bind(eventType, cb)
+			return gr.ToValue(id)
 		}
 		panic(gr.NewTypeError("expected arg1 to be Function"))
 	})
@@ -68,12 +91,13 @@ func (p *HelperSet) setDispatcher(gr *goja.Runtime) {
 	gr.Set("unbind", func(call goja.FunctionCall) goja.Value {
 		eventType := call.Argument(0).String()
 		arg1 := call.Argument(1)
-		fnName := getFnName(arg1)
-		if in, ok := p.funcs[fnName]; ok {
-			p.events.Unbind(eventType, in.handler)
-			delete(p.funcs, fnName)
+		o := arg1.ToObject(gr)
+		id := fmt.Sprintf("%p", o)
+		if cb, ok := p.funcs[id]; ok {
+			p.events.Unbind(eventType, cb)
+			delete(p.funcs, id)
 		} else {
-			logrus.Debugln("unbind called with unknown (or unbound) handler", eventType, arg1, fnName)
+			logrus.Debugln("unbind called with unknown (or unbound) handler", eventType, id)
 		}
 		return goja.Undefined()
 	})

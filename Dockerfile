@@ -39,4 +39,4 @@ COPY --from=build /squircy/out/squircy /bin/squircy
 
 COPY --from=build /squircy/out/*.so /squircy/plugins/
 
-CMD /bin/squircy
+CMD /bin/squircy -interactive

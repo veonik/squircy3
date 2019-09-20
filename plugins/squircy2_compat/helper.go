@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dop251/goja"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -27,12 +26,6 @@ type Config struct {
 	DataPath      string `toml:"data_path"`
 }
 
-type callback struct {
-	eventType string
-	callable  goja.Callable
-	handler   event.Handler
-}
-
 type HelperSet struct {
 	*Config
 
@@ -46,7 +39,7 @@ type HelperSet struct {
 	conf configHelper
 	irc  ircHelper
 
-	funcs map[string]callback
+	funcs map[string]*callback
 }
 
 func NewHelperSet(e *event.Dispatcher, v *vm.VM, i *irc.Manager) *HelperSet {

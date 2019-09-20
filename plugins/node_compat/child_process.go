@@ -28,7 +28,9 @@ export const spawn = (command, args, opts) => {
 				write: (input) => {
 					this.proc.Input(input);
 				},
-				end: () => {},
+				end: () => {
+					return this.proc.CloseInput();
+				},
 			};
 		}
 	};

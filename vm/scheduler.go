@@ -31,6 +31,7 @@ type deferredJob struct {
 	repeat bool
 
 	cancelled chan struct{}
+	sdone     chan struct{}
 }
 
 // scheduler handles the javascript event loop and evaluating javascript code.
@@ -178,11 +179,11 @@ func (s *scheduler) deferred(call goja.FunctionCall, repeating bool) goja.Value 
 }
 
 func newDeferred(s *scheduler, fn goja.Callable, delay time.Duration, repeat bool, args ...goja.Value) *deferredJob {
-	t := &deferredJob{fn: fn, args: args, repeat: repeat, cancelled: make(chan struct{})}
+	t := &deferredJob{fn: fn, args: args, repeat: repeat, cancelled: make(chan struct{}), sdone: s.done}
 	go func() {
 		for {
 			select {
-			case <-s.done:
+			case <-t.sdone:
 				return
 			case <-t.cancelled:
 				return
