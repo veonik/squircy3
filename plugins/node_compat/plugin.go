@@ -1,6 +1,7 @@
 package main // import "code.dopame.me/veonik/squircy3/plugins/node_compat"
 
 import (
+	"crypto/sha1"
 	"fmt"
 
 	"github.com/dop251/goja"
@@ -25,6 +26,7 @@ func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
 	}
 	vmp.SetModule(eventEmitter)
 	vmp.SetModule(childProcess)
+	vmp.SetModule(crypto)
 	return &nodeCompatPlugin{}, nil
 }
 
@@ -41,6 +43,15 @@ func (p *nodeCompatPlugin) HandleRuntimeInit(r *goja.Runtime) {
 		logrus.Warnf("%s: error initializing runtime: %s", pluginName, err)
 	}
 	r.Set("exec", v)
+
+	v = r.NewObject()
+	if err := v.Set("Sum", func(b []byte) (string, error) {
+		return fmt.Sprintf("%x", sha1.Sum(b)), nil
+	}); err != nil {
+		logrus.Warnf("%s: error initializing runtime: %s", pluginName, err)
+	}
+	r.Set("sha1", v)
+
 	_, err := r.RunString(`this.global = this.global || this;
 require('core-js-bundle');
 this.process = this.process || require('process/browser');

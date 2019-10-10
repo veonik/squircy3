@@ -25,14 +25,6 @@ func NewGenericRepository(database *DB, coll string) *GenericRepository {
 	return &GenericRepository{database, coll}
 }
 
-func hydrateGeneric(rawGeneric map[string]interface{}) GenericModel {
-	return GenericModel(rawGeneric)
-}
-
-func flattenGeneric(generic GenericModel) map[string]interface{} {
-	return map[string]interface{}(generic)
-}
-
 func (repo *GenericRepository) FetchAll() []GenericModel {
 	col := repo.database.Use(repo.coll)
 	generics := make([]GenericModel, 0)
@@ -44,7 +36,7 @@ func (repo *GenericRepository) FetchAll() []GenericModel {
 		if err := json.Unmarshal(doc, &val); err != nil {
 			repo.database.logger.Warnln("failed to unmarshal json data:", err)
 		}
-		generic := hydrateGeneric(val)
+		generic := GenericModel(val)
 		generic["ID"] = id
 
 		generics = append(generics, generic)
@@ -62,7 +54,7 @@ func (repo *GenericRepository) Fetch(id int) GenericModel {
 	if err != nil {
 		panic(err)
 	}
-	generic := hydrateGeneric(rawGeneric)
+	generic := GenericModel(rawGeneric)
 	generic["ID"] = id
 
 	return generic
@@ -70,17 +62,15 @@ func (repo *GenericRepository) Fetch(id int) GenericModel {
 
 func (repo *GenericRepository) Save(generic GenericModel) {
 	col := repo.database.Use(repo.coll)
-	data := flattenGeneric(generic)
-
 	if _, ok := generic["ID"]; !ok {
-		id, err := col.Insert(data)
+		id, err := col.Insert(generic)
 		generic["ID"] = id
 		if err != nil {
 			repo.database.logger.Warnln("failed to insert model data:", err)
 		}
 
 	} else {
-		err := col.Update(generic["ID"].(int), data)
+		err := col.Update(generic["ID"].(int), generic)
 		if err != nil {
 			repo.database.logger.Warnln("failed to update model data: ", err)
 		}

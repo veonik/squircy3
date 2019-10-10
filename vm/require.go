@@ -60,6 +60,7 @@ func (r *Registry) Enable(runtime *goja.Runtime) {
 
 func (r *Registry) SetModule(module *Module) {
 	module.registry = r
+	module.root = r.main.root
 	r.modules[module.Name] = module
 }
 
