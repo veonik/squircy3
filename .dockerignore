@@ -1,3 +1,4 @@
 out/*
 node_modules/*
+testdata/node_modules/*
 Dockerfile

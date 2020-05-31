@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -10,14 +9,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Runtime is a wrapper for goja that intends to increase concurrency safety.
-type Runtime struct {
+// runtime is a wrapper for goja that intends to increase concurrency safety.
+type runtime struct {
 	inner *goja.Runtime
 
 	mu sync.Mutex
 }
 
-func (r *Runtime) Do(fn func(*goja.Runtime)) {
+func (r *runtime) do(fn func(*goja.Runtime)) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	fn(r.inner)
@@ -36,7 +35,7 @@ type deferredJob struct {
 
 // scheduler handles the javascript event loop and evaluating javascript code.
 type scheduler struct {
-	runtime  *Runtime
+	runtime  *runtime
 	registry *Registry
 
 	jobs    chan job
@@ -119,13 +118,22 @@ func (s *scheduler) worker() {
 		case <-done:
 			return
 		case j := <-s.jobs:
-			s.runtime.Do(j)
+			s.runtime.do(j)
 		}
 	}
 }
 
 func (s *scheduler) run(j job) {
 	s.jobs <- j
+}
+
+func (s *scheduler) interrupt(v interface{}) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.running {
+		return
+	}
+	s.runtime.inner.Interrupt(v)
 }
 
 func (s *scheduler) start() error {
@@ -135,7 +143,8 @@ func (s *scheduler) start() error {
 		return errors.New("already started")
 	}
 	s.done = make(chan struct{})
-	s.runtime = &Runtime{inner: goja.New()}
+	s.runtime = &runtime{inner: goja.New()}
+	// s.runtime.inner.SetFieldNameMapper(goja.UncapField())
 	s.running = true
 	s.run(func(r *goja.Runtime) {
 		err := s.initRuntime()
@@ -151,21 +160,44 @@ func (s *scheduler) stop() error {
 	if !s.running {
 		return errors.New("not started")
 	}
-	s.run(func(*goja.Runtime) {
+	stop := func(gr *goja.Runtime) {
+		// actually change the state inside this job
+		// after this is executed, no further jobs will run
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		s.running = false
 		close(s.done)
-	})
+	}
+	s.run(stop)
+	select {
+	case <-time.After(500 * time.Millisecond):
+		// soft timeout, try emptying the jobs queue and interrupting execution
+		logrus.Warnln("vm soft time out expired, flushing remaining jobs without done them")
+		s.drain()
+		s.runtime.inner.Interrupt("vm is shutting down")
+		// requeue the stop job since we just flushed it down the drain
+		s.run(stop)
+
+	case <-s.done:
+		return nil
+	}
 	select {
 	case <-time.After(time.Second):
+		// hard time out, give up
 		return errors.New("timed out waiting to stop")
-
 	case <-s.done:
 		return nil
 	}
 }
 
+// drain empties the jobs channel.
+func (s *scheduler) drain() {
+	for len(s.jobs) > 0 {
+		<-s.jobs
+	}
+}
+
+// deferred defers a function invocation.
 func (s *scheduler) deferred(call goja.FunctionCall, repeating bool) goja.Value {
 	if fn, ok := goja.AssertFunction(call.Argument(0)); ok {
 		delay := call.Argument(1).ToInteger()
@@ -191,7 +223,7 @@ func newDeferred(s *scheduler, fn goja.Callable, delay time.Duration, repeat boo
 			case <-time.After(delay):
 				s.run(func(*goja.Runtime) {
 					if _, err := t.fn(nil, t.args...); err != nil {
-						fmt.Println(err)
+						logrus.Errorln("error handling deferred job:", err)
 					}
 				})
 

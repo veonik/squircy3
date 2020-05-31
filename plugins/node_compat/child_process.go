@@ -2,9 +2,11 @@ package main
 
 import "code.dopame.me/veonik/squircy3/vm"
 
-var childProcess = &vm.Module{
+// Module ChildProcess is a polyfill for the child_process node module.
+var ChildProcess = &vm.Module{
 	Name: "child_process",
 	Main: "index",
+	Path: "child_process",
 	Body: `
 import EventEmitter from 'events';
 

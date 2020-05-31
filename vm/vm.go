@@ -1,7 +1,6 @@
 package vm // import "code.dopame.me/veonik/squircy3/vm"
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -14,8 +13,7 @@ type VM struct {
 	registry  *Registry
 	scheduler *scheduler
 
-	babel bool
-
+	// done is initialized when the VM is started and closed when it is stopped.
 	done chan struct{}
 	mu   sync.Mutex
 }
@@ -61,7 +59,7 @@ func (vm *VM) Start() error {
 	if vm.done != nil {
 		select {
 		case <-vm.done:
-			// closed; not running, nothing to do
+			// closed; not done, nothing to do
 		default:
 			return nil
 		}
@@ -87,102 +85,25 @@ func (vm *VM) Shutdown() error {
 	select {
 	case <-done:
 		// all done, nothing to do
-	case <-time.After(time.Second):
+	case <-time.After(2 * time.Second):
 		return errors.New("timed out waiting for vm to shutdown")
 	}
 	return err
 }
 
-// Result is the output from executing some code in the VM.
-type Result struct {
-	// Closed when the result is ready. Read from this channel to detect when
-	// the result has been populated and is safe to inspect.
-	Ready chan struct{}
-	// Error associated with the result, if any. Only read from this after
-	// the result is ready.
-	Error error
-	// Value associated with the result if there is no error. Only read from
-	// this after the result is ready.
-	Value goja.Value
-
-	vmdone chan struct{}
-	cancel chan struct{}
+func (vm *VM) doneChan() chan struct{} {
+	vm.mu.Lock()
+	defer vm.mu.Unlock()
+	return vm.done
 }
 
-func newResult(vm *VM) *Result {
-	r := &Result{Ready: make(chan struct{}), cancel: make(chan struct{}), vmdone: vm.done}
-	go func() {
-		for {
-			select {
-			case <-r.Ready:
-				// close the cancel channel if we need to
-				select {
-				case <-r.cancel:
-					// do nothing
-
-				default:
-					close(r.cancel)
-				}
-				return
-
-			case <-r.cancel:
-				// signal to cancel received, resolve with an error
-				r.resolve(nil, errors.New("execution cancelled"))
-
-			case <-r.vmdone:
-				// VM shutdown without resolving, cancel execution
-				close(r.cancel)
-			}
-		}
-	}()
-	return r
+func (vm *VM) RunString(in string) *AsyncResult {
+	return vm.RunScript("<eval>", in)
 }
 
-// resolve populates the result with the given value or error.
-func (r *Result) resolve(v goja.Value, err error) {
-	select {
-	case <-r.Ready:
-		fmt.Println("resolve called on already finished Result")
-
-	default:
-		r.Error = err
-		r.Value = v
-		close(r.Ready)
-	}
-}
-
-// Await blocks until the result is ready and returns the result or error.
-func (r *Result) Await() (goja.Value, error) {
-	<-r.Ready
-	return r.Value, r.Error
-}
-
-// Cancel the result to halt execution.
-func (r *Result) Cancel() {
-	select {
-	case <-r.cancel:
-		// already cancelled, don't bother
-
-	default:
-		close(r.cancel)
-	}
-}
-
-func (vm *VM) RunString(in string) *Result {
-	res := newResult(vm)
-	vm.scheduler.run(func(r *goja.Runtime) {
-		p, err := vm.Compile("<eval>", in)
-		if err != nil {
-			res.resolve(nil, err)
-		} else {
-			res.resolve(r.RunProgram(p))
-		}
-	})
-	return res
-}
-
-func (vm *VM) RunScript(name, in string) *Result {
-	res := newResult(vm)
+func (vm *VM) RunScript(name, in string) *AsyncResult {
+	vmdone := vm.doneChan()
+	res := newResult(vmdone)
 	vm.scheduler.run(func(r *goja.Runtime) {
 		p, err := vm.Compile(name, in)
 		if err != nil {
@@ -191,15 +112,16 @@ func (vm *VM) RunScript(name, in string) *Result {
 			res.resolve(r.RunProgram(p))
 		}
 	})
-	return res
+	return newAsyncResult(res, vmdone, vm.Do)
 }
 
-func (vm *VM) RunProgram(p *goja.Program) *Result {
-	res := newResult(vm)
+func (vm *VM) RunProgram(p *goja.Program) *AsyncResult {
+	vmdone := vm.doneChan()
+	res := newResult(vmdone)
 	vm.scheduler.run(func(r *goja.Runtime) {
 		res.resolve(r.RunProgram(p))
 	})
-	return res
+	return newAsyncResult(res, vmdone, vm.Do)
 }
 
 func (vm *VM) Do(fn func(*goja.Runtime)) {

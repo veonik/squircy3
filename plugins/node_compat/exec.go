@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// A safeBuffer is a buffer that is safe to use in concurrent contexts.
 type safeBuffer struct {
 	buf bytes.Buffer
 	mu  sync.RWMutex
@@ -61,7 +62,7 @@ func NewProcess(command string, args ...string) *Process {
 	return p
 }
 
-// Start starts the process, leaving stdin open for writing.
+// start starts the process, leaving stdin open for writing.
 //
 // If the started process reads from stdin, it may not exit until
 // CloseInput is called.

@@ -1,4 +1,4 @@
-package main
+package transformer // import "code.dopame.me/veonik/squircy3/plugins/babel/transformer"
 
 import (
 	"github.com/dop251/goja"
@@ -11,7 +11,7 @@ type Babel struct {
 	transform goja.Callable
 }
 
-func NewBabel(r *goja.Runtime) (*Babel, error) {
+func New(r *goja.Runtime) (*Babel, error) {
 	b := &Babel{runtime: r}
 	v, err := b.runtime.RunString(`
 this.global = this.global || this;

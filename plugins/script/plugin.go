@@ -1,8 +1,6 @@
 package main // import "code.dopame.me/veonik/squircy3/plugins/script"
 
 import (
-	"fmt"
-
 	"code.dopame.me/veonik/squircy3/config"
 	"code.dopame.me/veonik/squircy3/plugin"
 	"code.dopame.me/veonik/squircy3/vm"
@@ -15,7 +13,7 @@ import (
 const pluginName = "script"
 
 func main() {
-	fmt.Println(pluginName, "- a plugin for squircy3")
+	plugin.Main(pluginName)
 }
 
 // Initialize is a valid plugin.Initializer

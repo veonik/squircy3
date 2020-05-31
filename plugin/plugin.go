@@ -1,6 +1,7 @@
 package plugin // import "code.dopame.me/veonik/squircy3/plugin"
 
 import (
+	"fmt"
 	"plugin"
 	"sync"
 
@@ -139,4 +140,8 @@ func (m *Manager) Configure() []error {
 		}
 	}
 	return errs
+}
+
+func Main(pluginName string) {
+	fmt.Println(pluginName, "- a plugin for squircy3")
 }

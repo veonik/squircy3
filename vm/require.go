@@ -146,18 +146,21 @@ func require(runtime *goja.Runtime, parent *Module, stack []string) func(goja.Fu
 	}
 }
 
+// A Module is a javascript module identified by a name and full path.
 type Module struct {
 	Name string
 	Path string
 	Main string
 	Body string
 
+	// etag is the sha256 hash of the original file.
 	etag [sha256.Size]byte
 	prog *goja.Program
 
 	root     *Module
 	registry *Registry
 
+	// value is the evaluated value in the currently running VM.
 	value *goja.Object
 }
 
@@ -224,7 +227,7 @@ func (m *Module) requireRelative(name string) (*Module, error) {
 }
 
 func (m *Module) FullPath() string {
-	return filepath.Clean(filepath.Join(m.Path, m.Name))
+	return filepath.Clean(filepath.Join(m.Path, m.Main))
 }
 
 func (m *Module) String() string {

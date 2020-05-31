@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/dlclark/regexp2 v1.2.0 // indirect
 	github.com/dop251/goja v0.0.0-20190912223329-aa89e6a4c733
+	github.com/dop251/goja_nodejs v0.0.0-20200128125109-2d688c7e0ac4 // indirect
 	github.com/fatih/structtag v1.0.0
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/kr/pretty v0.1.0 // indirect

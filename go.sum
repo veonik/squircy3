@@ -7,6 +7,8 @@ github.com/dlclark/regexp2 v1.2.0 h1:8sAhBGEM0dRWogWqWyQeIJnxjWO6oIjl8FKqREDsGfk
 github.com/dlclark/regexp2 v1.2.0/go.mod h1:2pZnwuY/m+8K6iRw6wQdMtk+rH5tNGR1i55kozfMjCc=
 github.com/dop251/goja v0.0.0-20190912223329-aa89e6a4c733 h1:cyNc40Dx5YNEO94idePU8rhVd3dn+sd04Arh0kDBAaw=
 github.com/dop251/goja v0.0.0-20190912223329-aa89e6a4c733/go.mod h1:Mw6PkjjMXWbTj+nnj4s3QPXq1jaT0s5pC0iFD4+BOAA=
+github.com/dop251/goja_nodejs v0.0.0-20200128125109-2d688c7e0ac4 h1:L3xoE2+R67n8YEoNBB9K5h9CYJd3QbD8iYAjnuqFNK8=
+github.com/dop251/goja_nodejs v0.0.0-20200128125109-2d688c7e0ac4/go.mod h1:hn7BA7c8pLvoGndExHudxTDKZ84Pyvv+90pbBjbTz0Y=
 github.com/fatih/structtag v1.0.0 h1:pTHj65+u3RKWYPSGaU290FpI/dXxTaHdVwVwbcPKmEc=
 github.com/fatih/structtag v1.0.0/go.mod h1:IKitwq45uXL/yqi5mYghiD3w9H6eTOvI9vnk8tXMphA=
 github.com/go-sourcemap/sourcemap v2.1.2+incompatible h1:0b/xya7BKGhXuqFESKM4oIiRo9WOt2ebz7KxfreD6ug=

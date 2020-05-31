@@ -2,9 +2,12 @@ package main
 
 import "code.dopame.me/veonik/squircy3/vm"
 
-var crypto = &vm.Module{
+// Module Crypto is a polyfill providing some functionality from the node
+// crypto module.
+var Crypto = &vm.Module{
 	Name: "crypto",
 	Main: "index",
+	Path: "crypto",
 	Body: `
 import {Buffer} from 'buffer';
 

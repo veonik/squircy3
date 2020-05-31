@@ -10,23 +10,27 @@ import (
 
 	"code.dopame.me/veonik/squircy3/config"
 	"code.dopame.me/veonik/squircy3/plugin"
+	"code.dopame.me/veonik/squircy3/plugins/node_compat/internal"
 	"code.dopame.me/veonik/squircy3/vm"
 )
 
-const pluginName = "node_compat"
+const PluginName = "node_compat"
 
 func main() {
-	fmt.Println(pluginName, "- a plugin for squircy3")
+	plugin.Main(PluginName)
 }
 
 func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
 	vmp, err := vm.FromPlugins(m)
 	if err != nil {
-		return nil, errors.Wrapf(err, "%s: required dependency missing (vm)", pluginName)
+		return nil, errors.Wrapf(err, "%s: required dependency missing (vm)", PluginName)
 	}
-	vmp.SetModule(eventEmitter)
-	vmp.SetModule(childProcess)
-	vmp.SetModule(crypto)
+	vmp.SetModule(EventEmitter)
+	vmp.SetModule(ChildProcess)
+	vmp.SetModule(Crypto)
+	vmp.SetModule(Stream)
+	vmp.SetModule(Net)
+	vmp.SetModule(Http)
 	return &nodeCompatPlugin{}, nil
 }
 
@@ -40,7 +44,7 @@ func (p *nodeCompatPlugin) HandleRuntimeInit(r *goja.Runtime) {
 	}
 	v := r.NewObject()
 	if err := v.Set("Command", NewProcess); err != nil {
-		logrus.Warnf("%s: error initializing runtime: %s", pluginName, err)
+		logrus.Warnf("%s: error initializing runtime: %s", PluginName, err)
 	}
 	r.Set("exec", v)
 
@@ -48,16 +52,22 @@ func (p *nodeCompatPlugin) HandleRuntimeInit(r *goja.Runtime) {
 	if err := v.Set("Sum", func(b []byte) (string, error) {
 		return fmt.Sprintf("%x", sha1.Sum(b)), nil
 	}); err != nil {
-		logrus.Warnf("%s: error initializing runtime: %s", pluginName, err)
+		logrus.Warnf("%s: error initializing runtime: %s", PluginName, err)
 	}
 	r.Set("sha1", v)
+
+	v = r.NewObject()
+	if err := v.Set("Dial", internal.Dial); err != nil {
+		logrus.Warnf("%s: error initializing runtime: %s", PluginName, err)
+	}
+	r.Set("internal", v)
 
 	_, err := r.RunString(`this.global = this.global || this;
 require('core-js-bundle');
 this.process = this.process || require('process/browser');
 require('regenerator-runtime');`)
 	if err != nil {
-		logrus.Warnf("%s: error initializing runtime: %s", pluginName, err)
+		logrus.Warnf("%s: error initializing runtime: %s", PluginName, err)
 	}
 }
 
@@ -71,5 +81,5 @@ func (p *nodeCompatPlugin) Configure(conf config.Config) error {
 }
 
 func (p *nodeCompatPlugin) Name() string {
-	return pluginName
+	return PluginName
 }

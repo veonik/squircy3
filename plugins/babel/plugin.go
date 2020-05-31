@@ -1,10 +1,9 @@
 package main // import "code.dopame.me/veonik/squircy3/plugins/babel"
 
 import (
-	"fmt"
-
 	"code.dopame.me/veonik/squircy3/config"
 	"code.dopame.me/veonik/squircy3/plugin"
+	babel "code.dopame.me/veonik/squircy3/plugins/babel/transformer"
 	"code.dopame.me/veonik/squircy3/vm"
 
 	"github.com/dop251/goja"
@@ -15,7 +14,7 @@ import (
 const pluginName = "babel"
 
 func main() {
-	fmt.Println(pluginName, "- a plugin for squircy3")
+	plugin.Main(pluginName)
 }
 
 func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
@@ -53,7 +52,7 @@ func (p *babelPlugin) HandleRuntimeInit(gr *goja.Runtime) {
 		return
 	}
 	p.vm.SetTransformer(nil)
-	b, err := NewBabel(gr)
+	b, err := babel.New(gr)
 	if err != nil {
 		logrus.Warnln("unable to run babel init script:", err)
 		return

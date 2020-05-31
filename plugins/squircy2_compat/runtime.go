@@ -65,10 +65,6 @@ func (cb *callback) Handle(ev *event.Event) {
 }
 
 func (p *HelperSet) setDispatcher(gr *goja.Runtime) {
-	//getFnName := func(fn goja.Value) (name string) {
-	//	s := sha256.Sum256([]byte(fmt.Sprintf("%p", fn)))
-	//	return fmt.Sprintf("__Handler%x", s)
-	//}
 	if p.funcs != nil {
 		for _, f := range p.funcs {
 			p.events.Unbind(f.eventType, f)

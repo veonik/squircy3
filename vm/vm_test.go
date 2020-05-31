@@ -1,6 +1,7 @@
 package vm_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -49,5 +50,32 @@ func TestVM_Restart(t *testing.T) {
 	if err := v.Shutdown(); err != nil {
 		t.Errorf("failed to shutdown v: %s", err)
 		return
+	}
+}
+
+func TestVM_Shutdown_interrupts(t *testing.T) {
+	v, err := vm.New(vm.NewRegistry("."))
+	if err != nil {
+		t.Errorf("failed to create v: %s", err)
+		return
+	}
+	if err := v.Start(); err != nil {
+		t.Errorf("failed to start v: %s", err)
+		return
+	}
+	res := v.RunString("for (;;) {}")
+	err = v.Shutdown()
+	if err != nil {
+		t.Errorf("error shutting down: %s", err)
+		return
+	}
+	_, err = res.Await()
+	if err == nil {
+		t.Errorf("expected error to exist, got nil")
+		return
+	}
+	expect := "vm is shutting down"
+	if !strings.Contains(err.Error(), expect) {
+		t.Errorf("expected error to contain '" + expect + "'\ngot: " + err.Error())
 	}
 }

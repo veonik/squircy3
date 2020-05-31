@@ -13,6 +13,8 @@ OUTPUT_BASE := out
 PLUGIN_TARGETS := $(patsubst %,$(OUTPUT_BASE)/%.so,$(PLUGINS))
 SQUIRCY_TARGET := $(OUTPUT_BASE)/squircy
 
+TESTDATA_NODEMODS_TARGET := testdata/node_modules
+
 .PHONY: all build generate run squircy plugins clean
 
 all: build
@@ -30,6 +32,13 @@ plugins: $(PLUGIN_TARGETS)
 
 run: build
 	$(SQUIRCY_TARGET)
+
+test: $(TESTDATA_NODEMODS_TARGET)
+	go test --tags netgo -race ./...
+
+$(TESTDATA_NODEMODS_TARGET):
+	cd testdata && \
+		yarn install
 
 .SECONDEXPANSION:
 $(PLUGIN_TARGETS): $(OUTPUT_BASE)/%.so: $$(wildcard plugins/%/*) $(SOURCES)
