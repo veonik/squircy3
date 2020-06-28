@@ -214,7 +214,7 @@ func (r *AsyncResult) Cancel() {
 }
 
 func getOrCreateResultHandler(gr *goja.Runtime) goja.Callable {
-	if v := gr.Get("_squircy_handle_result"); v != nil {
+	if v := gr.Get("____squircy3_handle_result"); v != nil {
 		fn, _ := goja.AssertFunction(v)
 		return fn
 	}
@@ -222,7 +222,7 @@ func getOrCreateResultHandler(gr *goja.Runtime) goja.Callable {
 	// Promise, sets the error if the value is an Error, or sets the result
 	// as the value for anything else.
 	v, err := gr.RunString(`
-var handler = function(state) {
+(function(state) {
 	if(typeof Promise !== 'undefined' && state.value instanceof Promise) {
 	  state.value
 		.then(function(result) { state.result = result; })
@@ -235,8 +235,7 @@ var handler = function(state) {
 	  state.result = state.value;
 	  state.done = true;
 	}
-}
-handler;`)
+})`)
 	if err != nil {
 		logrus.Warnln("unable to set async result handler:", err.Error())
 		return nil
@@ -297,7 +296,6 @@ func (r *AsyncResult) loop() {
 		}
 		select {
 		case <-r.cancel:
-			r.Error = errors.New("cancelled")
 			return
 		case <-r.vmdone:
 			// VM shutdown without resolving, cancel execution

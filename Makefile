@@ -13,6 +13,9 @@ OUTPUT_BASE := out
 PLUGIN_TARGETS := $(patsubst %,$(OUTPUT_BASE)/%.so,$(PLUGINS))
 SQUIRCY_TARGET := $(OUTPUT_BASE)/squircy
 
+RACE ?= -race
+TEST_ARGS ?= -count 1
+
 TESTDATA_NODEMODS_TARGET := testdata/node_modules
 
 .PHONY: all build generate run squircy plugins clean
@@ -34,7 +37,7 @@ run: build
 	$(SQUIRCY_TARGET)
 
 test: $(TESTDATA_NODEMODS_TARGET)
-	go test --tags netgo -race ./...
+	go test -tags netgo $(RACE) $(TEST_ARGS) ./...
 
 $(TESTDATA_NODEMODS_TARGET):
 	cd testdata && \
@@ -42,10 +45,10 @@ $(TESTDATA_NODEMODS_TARGET):
 
 .SECONDEXPANSION:
 $(PLUGIN_TARGETS): $(OUTPUT_BASE)/%.so: $$(wildcard plugins/%/*) $(SOURCES)
-	go build -tags netgo -race -o $@ -buildmode=plugin plugins/$*/*.go
+	go build -tags netgo $(RACE) -o $@ -buildmode=plugin plugins/$*/*.go
 
 $(SQUIRCY_TARGET): $(SOURCES)
-	go build -tags netgo -race -o $@ cmd/squircy/*.go
+	go build -tags netgo $(RACE) -o $@ cmd/squircy/*.go
 
 $(OUTPUT_BASE)/.generated: $(GENERATOR_SOURCES)
 	go generate

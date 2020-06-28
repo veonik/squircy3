@@ -92,7 +92,7 @@ func require(runtime *goja.Runtime, parent *Module, stack []string) func(goja.Fu
 			return true
 		}
 		parse := func(body string) (*ast.Program, error) {
-			return parser.ParseFile(nil, module.FullPath(), "var res = (function(require, module, exports) {\n"+body+"\n}); res", parser.Mode(0))
+			return parser.ParseFile(nil, module.FullPath(), "(function(require, module, exports) {\n"+body+"\n})", parser.Mode(0))
 		}
 		if !equal(module.etag, etag) {
 			body := module.Body

@@ -144,7 +144,6 @@ func (s *scheduler) start() error {
 	}
 	s.done = make(chan struct{})
 	s.runtime = &runtime{inner: goja.New()}
-	// s.runtime.inner.SetFieldNameMapper(goja.UncapField())
 	s.running = true
 	s.run(func(r *goja.Runtime) {
 		err := s.initRuntime()

@@ -1,12 +1,14 @@
 FROM golang:buster AS build
 
+ARG race
+
 WORKDIR /squircy
 
 COPY . .
 
 RUN go get -v ./...
 
-RUN make clean all
+RUN make clean all RACE=${race}
 
 
 FROM debian:buster-slim
