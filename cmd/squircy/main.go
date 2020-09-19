@@ -8,6 +8,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	tilde "gopkg.in/mattes/go-expand-tilde.v1"
+
+	"code.dopame.me/veonik/squircy3/cli"
 )
 
 type stringsFlag []string
@@ -67,7 +69,7 @@ func init() {
 
 func main() {
 	logrus.SetLevel(logrus.Level(logLevel))
-	m, err := NewManager(rootDir, extraPlugins...)
+	m, err := cli.NewManager(rootDir, extraPlugins...)
 	if err != nil {
 		logrus.Fatalln("error initializing squircy:", err)
 	}
@@ -76,7 +78,7 @@ func main() {
 	}
 	if interactive {
 		go func() {
-			m.Repl()
+			Repl(m)
 		}()
 	}
 	if err = m.Loop(); err != nil {

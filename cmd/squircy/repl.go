@@ -8,32 +8,33 @@ import (
 	"github.com/peterh/liner"
 	"github.com/sirupsen/logrus"
 
+	"code.dopame.me/veonik/squircy3/cli"
 	"code.dopame.me/veonik/squircy3/vm"
 )
 
-func (manager *Manager) Repl() {
+func Repl(manager *cli.Manager) {
 	hist := filepath.Join(manager.RootDir, ".history_repl")
 
-	cli := liner.NewLiner()
-	cli.SetCtrlCAborts(true)
+	input := liner.NewLiner()
+	input.SetCtrlCAborts(true)
 	defer func() {
 		if f, err := os.Create(hist); err == nil {
-			if _, err = cli.WriteHistory(f); err != nil {
+			if _, err = input.WriteHistory(f); err != nil {
 				logrus.Warnln("failed to write history:", err)
 			}
 			_ = f.Close()
 		}
-		_ = cli.Close()
+		_ = input.Close()
 	}()
 
-	jsVM, err := vm.FromPlugins(manager.plugins)
+	jsVM, err := vm.FromPlugins(manager.Plugins())
 	if err != nil {
 		logrus.Warnln("failed to get VM from plugin manager:", err)
 		return
 	}
 
 	if f, err := os.Open(hist); err == nil {
-		if _, err = cli.ReadHistory(f); err != nil {
+		if _, err = input.ReadHistory(f); err != nil {
 			logrus.Warnln("failed to read history:", err)
 		}
 		_ = f.Close()
@@ -42,7 +43,7 @@ func (manager *Manager) Repl() {
 	fmt.Println("Type 'exit' and hit enter to exit the REPL.")
 	ctrlcs := 0
 	for {
-		str, err := cli.Prompt("repl> ")
+		str, err := input.Prompt("repl> ")
 		if err == liner.ErrPromptAborted && ctrlcs == 0 {
 			ctrlcs += 1
 			fmt.Println("Press CTRL+C again to close the REPL.")
@@ -56,7 +57,7 @@ func (manager *Manager) Repl() {
 		if str == "" {
 			continue
 		}
-		cli.AppendHistory(str)
+		input.AppendHistory(str)
 		v, err := jsVM.RunString(str).Await()
 		if err != nil {
 			logrus.Warnln("error:", err)

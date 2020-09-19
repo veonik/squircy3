@@ -1,4 +1,5 @@
-package main
+// import "code.dopame.me/veonik/squircy3/cli"
+package cli
 
 import (
 	"fmt"
@@ -59,6 +60,10 @@ func NewManager(rootDir string, extraPlugins ...string) (*Manager, error) {
 		sig:     make(chan os.Signal, 10),
 		Config:  conf,
 	}, nil
+}
+
+func (manager *Manager) Plugins() *plugin.Manager {
+	return manager.plugins
 }
 
 func (manager *Manager) Start() error {
