@@ -12,7 +12,7 @@ import (
 
 	babel "code.dopame.me/veonik/squircy3/plugins/babel/transformer"
 	node_compat "code.dopame.me/veonik/squircy3/plugins/node_compat"
-	"code.dopame.me/veonik/squircy3/plugins/node_compat/internal"
+	"code.dopame.me/veonik/squircy3/plugins/node_compat/native"
 	"code.dopame.me/veonik/squircy3/vm"
 )
 
@@ -41,7 +41,7 @@ func HandleRuntimeInit(vmp *vm.VM) func(*goja.Runtime) {
 		gr.Set("sha1", v)
 
 		v = gr.NewObject()
-		if err := v.Set("Dial", internal.Dial); err != nil {
+		if err := v.Set("Dial", native.Dial); err != nil {
 			logrus.Warnf("%s: error initializing runtime: %s", node_compat.PluginName, err)
 		}
 		if err := v.Set("Listen", func(call goja.FunctionCall) goja.Value {
@@ -55,7 +55,7 @@ func HandleRuntimeInit(vmp *vm.VM) func(*goja.Runtime) {
 			}
 			kind := call.Arguments[1].String()
 			addr := call.Arguments[2].String()
-			srv, err := internal.Listen(vmp, fn, kind, addr)
+			srv, err := native.Listen(vmp, fn, kind, addr)
 			if err != nil {
 				panic(gr.NewGoError(err))
 			}
@@ -63,7 +63,7 @@ func HandleRuntimeInit(vmp *vm.VM) func(*goja.Runtime) {
 		}); err != nil {
 			logrus.Warnf("%s: error initializing runtime: %s", node_compat.PluginName, err)
 		}
-		gr.Set("internal", v)
+		gr.Set("native", v)
 
 		_, err = gr.RunString(`this.global = this.global || this;
 require('core-js-bundle');

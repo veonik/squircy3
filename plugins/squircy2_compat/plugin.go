@@ -1,4 +1,4 @@
-package main // import "code.dopame.me/veonik/squircy3/plugins/squircy2_compat"
+package main
 
 import (
 	"code.dopame.me/veonik/squircy3/config"

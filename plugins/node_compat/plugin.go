@@ -1,4 +1,4 @@
-package main // import "code.dopame.me/veonik/squircy3/plugins/node_compat"
+package main
 
 import (
 	"crypto/sha1"
@@ -10,7 +10,7 @@ import (
 
 	"code.dopame.me/veonik/squircy3/config"
 	"code.dopame.me/veonik/squircy3/plugin"
-	"code.dopame.me/veonik/squircy3/plugins/node_compat/internal"
+	"code.dopame.me/veonik/squircy3/plugins/node_compat/native"
 	"code.dopame.me/veonik/squircy3/vm"
 )
 
@@ -57,10 +57,10 @@ func (p *nodeCompatPlugin) HandleRuntimeInit(r *goja.Runtime) {
 	r.Set("sha1", v)
 
 	v = r.NewObject()
-	if err := v.Set("Dial", internal.Dial); err != nil {
+	if err := v.Set("Dial", native.Dial); err != nil {
 		logrus.Warnf("%s: error initializing runtime: %s", PluginName, err)
 	}
-	r.Set("internal", v)
+	r.Set("native", v)
 
 	_, err := r.RunString(`this.global = this.global || this;
 require('core-js-bundle');

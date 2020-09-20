@@ -1,4 +1,4 @@
-package internal
+package native // import "code.dopame.me/veonik/squircy3/plugins/node_compat/native"
 
 import (
 	"io"

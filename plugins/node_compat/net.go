@@ -89,7 +89,7 @@ export class Socket extends Duplex {
 		}
 		console.log('dialing', host + ':' + port);
 		this._connecting = true;
-		this._connection = internal.Dial('tcp', host + ':' + port);
+		this._connection = native.Dial('tcp', host + ':' + port);
 		this.emit('connect');
 		this.emit('ready');
     }
@@ -183,7 +183,7 @@ export class Server extends EventEmitter {
 			this.emit('connection', socket);
 			socket.emit('ready');
 		};
-		this._server = internal.Listen(accept, 'tcp4', addr);
+		this._server = native.Listen(accept, 'tcp4', addr);
 		this.emit('listening');
 	}
 
