@@ -55,7 +55,7 @@ type Dispatcher struct {
 
 // NewDispatcher returns an event dispatcher, ready for use.
 func NewDispatcher() *Dispatcher {
-	return NewDispatcherLimit(64)
+	return NewDispatcherLimit(1024)
 }
 
 // NewDispatcherLimit returns an event dispatcher with a buffer size of limit.
