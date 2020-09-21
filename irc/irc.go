@@ -2,14 +2,15 @@ package irc // import "code.dopame.me/veonik/squircy3/irc"
 
 import (
 	"crypto/tls"
-	"fmt"
+	"log"
 	"sync"
 	"time"
 
-	"code.dopame.me/veonik/squircy3/event"
-
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/thoj/go-ircevent"
+
+	"code.dopame.me/veonik/squircy3/event"
 )
 
 type Config struct {
@@ -23,6 +24,8 @@ type Config struct {
 	SASL         bool   `toml:"sasl"`
 	SASLUsername string `toml:"sasl_username"`
 	SASLPassword string `toml:"sasl_password"`
+
+	ServerPassword string `toml:"server_password"`
 }
 
 type Manager struct {
@@ -56,7 +59,7 @@ func (conn *Connection) Quit() error {
 		// already quitting, nothing to do
 
 	default:
-		fmt.Println("quitting")
+		logrus.Println("quitting")
 		conn.Connection.Quit()
 		close(conn.quitting)
 	}
@@ -77,13 +80,13 @@ func (conn *Connection) controlLoop() {
 	for {
 		select {
 		case err, ok := <-errC:
-			fmt.Println("read from errC in controlLoop")
+			logrus.Warnln("read from errC in controlLoop")
 			if !ok {
 				// channel was closed
-				fmt.Println("conn errs already closed")
+				logrus.Warnln("conn errs already closed")
 				continue
 			}
-			fmt.Println("got err from conn:", err)
+			logrus.Warnln("got err from conn:", err)
 			conn.Lock()
 			co := conn.Connected()
 			conn.Unlock()
@@ -128,6 +131,7 @@ func newConnection(c Config) *Connection {
 		done:     make(chan struct{}),
 	}
 	conn.Connection = irc.IRC(c.Nick, c.Username)
+	conn.Log = log.New(logrus.StandardLogger().WriterLevel(logrus.InfoLevel), "", 0)
 	if c.TLS {
 		conn.UseTLS = true
 		conn.TLSConfig = &tls.Config{}
@@ -137,6 +141,7 @@ func newConnection(c Config) *Connection {
 		conn.SASLLogin = c.SASLUsername
 		conn.SASLPassword = c.SASLPassword
 	}
+	conn.Password = c.ServerPassword
 	conn.QuitMessage = "farewell"
 	return conn
 }
