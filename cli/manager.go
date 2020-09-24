@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"sync"
 	"syscall"
 
 	"github.com/sirupsen/logrus"
@@ -24,6 +23,9 @@ type Config struct {
 	RootDir      string   `toml:"root_path"`
 	PluginDir    string   `toml:"plugin_path"`
 	ExtraPlugins []string `toml:"extra_plugins"`
+
+	// Specify additional plugins that are a part of the main executable.
+	LinkedPlugins []plugin.Initializer
 }
 
 type Manager struct {
@@ -31,7 +33,7 @@ type Manager struct {
 
 	Config
 
-	sig chan os.Signal
+	stop chan os.Signal
 }
 
 func NewManager(rootDir string, extraPlugins ...string) (*Manager, error) {
@@ -57,9 +59,18 @@ func NewManager(rootDir string, extraPlugins ...string) (*Manager, error) {
 	}
 	return &Manager{
 		plugins: m,
-		sig:     make(chan os.Signal, 10),
+		stop:     make(chan os.Signal, 10),
 		Config:  conf,
 	}, nil
+}
+
+func (manager *Manager) Stop() {
+	select {
+	case <-manager.stop:
+		// already stopped
+	default:
+		close(manager.stop)
+	}
 }
 
 func (manager *Manager) Plugins() *plugin.Manager {
@@ -83,6 +94,9 @@ func (manager *Manager) Start() error {
 			pl = filepath.Join(manager.PluginDir, pl)
 		}
 		m.Register(plugin.InitializeFromFile(pl))
+	}
+	for _, pl := range manager.LinkedPlugins {
+		m.Register(pl)
 	}
 	if err := configure(m); err != nil {
 		return errors.Wrap(err, "unable to init extra plugins")
@@ -110,9 +124,15 @@ func (manager *Manager) Start() error {
 func (manager *Manager) Loop() error {
 	st := make(chan os.Signal, 10)
 	signal.Notify(st, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2)
-	signal.Notify(manager.sig, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(st, os.Interrupt, syscall.SIGTERM)
 	for {
 		select {
+		case <-manager.stop:
+			logrus.Infoln("shutting down")
+			if err := manager.Shutdown(); err != nil {
+				logrus.Warnln("error shutting down:", err)
+			}
+			return nil
 		case s := <-st:
 			switch s {
 			case syscall.SIGHUP:
@@ -130,46 +150,20 @@ func (manager *Manager) Loop() error {
 					logrus.Warnln("unable to restart js vm:", err)
 					continue
 				}
+			case os.Interrupt:
+				fallthrough
+			case syscall.SIGTERM:
+				manager.Stop()
 			default:
 				logrus.Infoln("received signal", s, "but not doing anything with it")
 			}
-
-		case <-manager.sig:
-			logrus.Infoln("shutting down")
-			if err := manager.Shutdown(); err != nil {
-				logrus.Warnln("error shutting down:", err)
-			}
-			return nil
 		}
 	}
 }
 
 func (manager *Manager) Shutdown() error {
 	m := manager.plugins
-
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		myVM, err := vm.FromPlugins(m)
-		if err != nil {
-			logrus.Warnln("error shutting down vm:", err)
-		}
-
-		if err := myVM.Shutdown(); err != nil {
-			logrus.Warnln("error shutting down vm:", err)
-		}
-		wg.Done()
-	}()
-	wg.Add(1)
-	go func() {
-		d, err := event.FromPlugins(m)
-		if err != nil {
-			logrus.Warnln("error shutting down events:", err)
-		}
-		d.Stop()
-		wg.Done()
-	}()
-	wg.Wait()
+	m.Shutdown()
 	return nil
 }
 

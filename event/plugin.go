@@ -20,7 +20,6 @@ func FromPlugins(m *plugin.Manager) (*Dispatcher, error) {
 
 func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
 	p := &eventPlugin{NewDispatcher()}
-	m.OnPluginInit(p)
 	return p, nil
 }
 
@@ -34,4 +33,8 @@ func (p *eventPlugin) Name() string {
 
 func (p *eventPlugin) HandlePluginInit(o plugin.Plugin) {
 	p.dispatcher.Emit("plugin.INIT", map[string]interface{}{"name": o.Name(), "plugin": o})
+}
+
+func (p *eventPlugin) HandleShutdown() {
+	p.dispatcher.Stop()
 }

@@ -16,6 +16,10 @@ type InitHandler interface {
 	HandlePluginInit(Plugin)
 }
 
+type ShutdownHandler interface {
+	HandleShutdown()
+}
+
 type Initializer interface {
 	Initialize(*Manager) (Plugin, error)
 }
@@ -54,7 +58,8 @@ type Manager struct {
 
 	loaded map[string]Plugin
 
-	onInit []InitHandler
+	onInit     []InitHandler
+	onShutdown []ShutdownHandler
 
 	mu sync.RWMutex
 }
@@ -74,6 +79,28 @@ func (m *Manager) OnPluginInit(h InitHandler) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.onInit = append(m.onInit, h)
+}
+
+func (m *Manager) OnShutdown(h ShutdownHandler) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.onShutdown = append(m.onShutdown, h)
+}
+
+func (m *Manager) Shutdown() {
+	m.mu.RLock()
+	hs := make([]ShutdownHandler, len(m.onShutdown))
+	copy(hs, m.onShutdown)
+	m.mu.RUnlock()
+	wg := &sync.WaitGroup{}
+	for _, h := range m.onShutdown {
+		wg.Add(1)
+		go func(sh ShutdownHandler) {
+			sh.HandleShutdown()
+			wg.Done()
+		}(h)
+	}
+	wg.Wait()
 }
 
 func (m *Manager) Lookup(name string) (Plugin, error) {
@@ -126,6 +153,12 @@ func (m *Manager) Configure() []error {
 		if !ok {
 			// not already loaded, add it
 			m.loaded[pn] = plg
+			if ih, ok := plg.(InitHandler); ok {
+				m.onInit = append(m.onInit, ih)
+			}
+			if sh, ok := plg.(ShutdownHandler); ok {
+				m.onShutdown = append(m.onShutdown, sh)
+			}
 		}
 		// unlock outside of any conditional
 		m.mu.Unlock()

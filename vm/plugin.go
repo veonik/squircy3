@@ -36,7 +36,6 @@ func FromPlugins(m *plugin.Manager) (*VM, error) {
 
 func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
 	p := &vmPlugin{}
-	m.OnPluginInit(p)
 	return p, nil
 }
 
@@ -84,5 +83,15 @@ func (p *vmPlugin) HandlePluginInit(o plugin.Plugin) {
 		} else {
 			p.vm.OnRuntimeInit(ih.HandleRuntimeInit)
 		}
+	}
+}
+
+func (p *vmPlugin) HandleShutdown() {
+	if p.vm == nil {
+		logrus.Warnln("vm: shutting down uninitialized plugin")
+		return
+	}
+	if err := p.vm.Shutdown(); err != nil {
+		logrus.Warnln("error shutting down vm:", err)
 	}
 }

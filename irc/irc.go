@@ -100,7 +100,17 @@ func (conn *Connection) controlLoop() {
 }
 
 func NewManager(c *Config, ev *event.Dispatcher) *Manager {
-	return &Manager{config: c, events: ev}
+	m := &Manager{config: c, events: ev}
+	if c.AutoConnect {
+		go func() {
+			logrus.Infoln("Automatically connecting...")
+			<-time.After(250 * time.Millisecond)
+			if err := m.Connect(); err != nil {
+				logrus.Errorln("failed to autoconnect:", err)
+			}
+		}()
+	}
+	return m
 }
 
 func (m *Manager) Do(fn func(*Connection) error) error {

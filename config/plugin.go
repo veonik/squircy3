@@ -28,7 +28,6 @@ func ConfigurePlugin(m *plugin.Manager, opts ...SetupOption) error {
 
 func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
 	p := &configPlugin{}
-	m.OnPluginInit(p)
 	return p, nil
 }
 

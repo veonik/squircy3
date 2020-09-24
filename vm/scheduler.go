@@ -171,7 +171,7 @@ func (s *scheduler) stop() error {
 	select {
 	case <-time.After(500 * time.Millisecond):
 		// soft timeout, try emptying the jobs queue and interrupting execution
-		logrus.Warnln("vm soft time out expired, flushing remaining jobs without done them")
+		logrus.Warnln("vm soft time out expired, flushing remaining jobs without processing them")
 		s.drain()
 		s.runtime.inner.Interrupt("vm is shutting down")
 		// requeue the stop job since we just flushed it down the drain
