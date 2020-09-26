@@ -84,17 +84,10 @@ func (conn *Connection) controlLoop() {
 			if !ok {
 				// channel was closed
 				logrus.Warnln("conn errs already closed")
-				continue
-			}
-			logrus.Warnln("got err from conn:", err)
-			conn.Lock()
-			co := conn.Connected()
-			conn.Unlock()
-			if !co {
-				// all done!
-				close(conn.done)
 				return
 			}
+			logrus.Warnln("got err from conn:", err)
+			conn.Disconnect()
 		}
 	}
 }
@@ -187,6 +180,8 @@ func (m *Manager) Connect() error {
 			defer m.mu.Unlock()
 			m.conn = nil
 		}()
+	} else {
+		m.conn = nil
 	}
 	return err
 }
