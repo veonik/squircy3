@@ -81,7 +81,7 @@ func require(runtime *goja.Runtime, parent *Module, stack []string) func(goja.Fu
 		if module.value != nil {
 			return module.value.Get("exports")
 		}
-		logrus.Warnln("requiring", module.FullPath())
+		logrus.Debugln("requiring", module.FullPath())
 		etag := sha256.Sum256([]byte(module.Body))
 		equal := func(a, b [sha256.Size]byte) bool {
 			for i := 0; i < sha256.Size; i++ {

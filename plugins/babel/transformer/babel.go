@@ -37,7 +37,7 @@ require('core-js-bundle');
 this.Babel = require('@babel/standalone');
 var plugin = require('regenerator-transform');
 (function(src) { 
-    var res = Babel.transform(src, {presets: ['es2015'], plugins: [plugin]}); 
+    var res = Babel.transform(src, {presets: ['es2015','es2016','es2017'], plugins: [plugin]}); 
     return res.code; 
 })`)
 	if err != nil {

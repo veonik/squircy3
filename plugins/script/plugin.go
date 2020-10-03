@@ -55,22 +55,22 @@ type scriptPlugin struct {
 }
 
 func (p *scriptPlugin) HandleRuntimeInit(r *goja.Runtime) {
-	logrus.Infoln("loading scripts from", p.manager.rootDir)
+	logrus.Infoln("Loading scripts from", p.manager.rootDir)
 	ss, err := p.manager.LoadAll()
 	if err != nil {
-		logrus.Warnln("error loading scripts at runtime init:", err)
+		logrus.Warnln("Error loading scripts at runtime init:", err)
 		return
 	}
 	for _, s := range ss {
-		logrus.Infoln("running script", s.Name)
+		logrus.Infoln("Running script", s.Name)
 		pr, err := p.vm.Compile(s.Name, s.Body)
 		if err != nil {
-			logrus.Warnln("error compiling script", s.Name, err)
+			logrus.Warnln("Error compiling script", s.Name, err)
 			return
 		}
 		_, err = r.RunProgram(pr)
 		if err != nil {
-			logrus.Warnln("error running script", s.Name, err)
+			logrus.Warnln("Error running script", s.Name, err)
 		}
 	}
 }

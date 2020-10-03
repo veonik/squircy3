@@ -59,7 +59,7 @@ func NewManager(rootDir string, extraPlugins ...string) (*Manager, error) {
 	}
 	return &Manager{
 		plugins: m,
-		stop:     make(chan os.Signal, 10),
+		stop:    make(chan os.Signal, 10),
 		Config:  conf,
 	}, nil
 }

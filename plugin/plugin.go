@@ -103,6 +103,16 @@ func (m *Manager) Shutdown() {
 	wg.Wait()
 }
 
+func (m *Manager) Loaded() []string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var ns []string
+	for n, _ := range m.loaded {
+		ns = append(ns, n)
+	}
+	return ns
+}
+
 func (m *Manager) Lookup(name string) (Plugin, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

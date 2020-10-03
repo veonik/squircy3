@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"code.dopame.me/veonik/squircy3/config"
 	"code.dopame.me/veonik/squircy3/plugin"
 	babel "code.dopame.me/veonik/squircy3/plugins/babel/transformer"
@@ -52,10 +54,13 @@ func (p *babelPlugin) HandleRuntimeInit(gr *goja.Runtime) {
 		return
 	}
 	p.vm.SetTransformer(nil)
+	logrus.Infoln("Initializing babel.js transformer...")
+	st := time.Now()
 	b, err := babel.New(gr)
 	if err != nil {
-		logrus.Warnln("unable to run babel init script:", err)
+		logrus.Warnln("Failed to initialize babel.js:", err)
 		return
 	}
+	logrus.Infof("Initialized babel.js transformer (took %s)", time.Now().Sub(st))
 	p.vm.SetTransformer(b.Transform)
 }
