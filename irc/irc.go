@@ -8,7 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/thoj/go-ircevent"
+	irc "github.com/thoj/go-ircevent"
 
 	"code.dopame.me/veonik/squircy3/event"
 )
@@ -26,6 +26,8 @@ type Config struct {
 	SASLPassword string `toml:"sasl_password"`
 
 	ServerPassword string `toml:"server_password"`
+
+	Version string
 }
 
 type Manager struct {
@@ -34,6 +36,18 @@ type Manager struct {
 	conn   *Connection
 
 	mu sync.RWMutex
+}
+
+func (m *Manager) SetVersionString(v string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.config.Version = v
+	if m.conn != nil {
+		m.conn.Lock()
+		defer m.conn.Unlock()
+		m.conn.current.Version = v
+		m.conn.Version = v
+	}
 }
 
 type Connection struct {
@@ -59,7 +73,7 @@ func (conn *Connection) Quit() error {
 		// already quitting, nothing to do
 
 	default:
-		logrus.Println("quitting")
+		logrus.Debugln("quitting")
 		conn.Connection.Quit()
 		close(conn.quitting)
 	}
@@ -69,7 +83,7 @@ func (conn *Connection) Quit() error {
 		break
 
 	case <-time.After(1 * time.Second):
-		conn.Connection.Disconnect()
+		go conn.Connection.Disconnect()
 		return errors.Errorf("timed out waiting for quit")
 	}
 	return nil
@@ -79,15 +93,28 @@ func (conn *Connection) controlLoop() {
 	errC := conn.ErrorChan()
 	for {
 		select {
+		case <-conn.quitting:
+			select {
+			case <-conn.done:
+				// already done
+			default:
+				close(conn.done)
+			}
+			return
+
 		case err, ok := <-errC:
-			logrus.Warnln("read from errC in controlLoop")
+			logrus.Debugln("read from errC in controlLoop")
 			if !ok {
 				// channel was closed
-				logrus.Warnln("conn errs already closed")
+				logrus.Debugln("conn errs already closed")
 				return
 			}
-			logrus.Warnln("got err from conn:", err)
-			conn.Disconnect()
+			logrus.Warnln("Received irc connection error:", err)
+			if err != irc.ErrDisconnected {
+				if err = conn.Quit(); err != nil {
+					logrus.Warnln("Failed to quit irc cleanly:", err)
+				}
+			}
 		}
 	}
 }
@@ -96,8 +123,8 @@ func NewManager(c *Config, ev *event.Dispatcher) *Manager {
 	m := &Manager{config: c, events: ev}
 	if c.AutoConnect {
 		go func() {
-			logrus.Infoln("Automatically connecting...")
-			<-time.After(250 * time.Millisecond)
+			<-time.After(500 * time.Millisecond)
+			logrus.Infof("Auto-connecting...")
 			if err := m.Connect(); err != nil {
 				logrus.Errorln("failed to autoconnect:", err)
 			}
@@ -146,6 +173,7 @@ func newConnection(c Config) *Connection {
 	}
 	conn.Password = c.ServerPassword
 	conn.QuitMessage = "farewell"
+	conn.Version = c.Version
 	return conn
 }
 
