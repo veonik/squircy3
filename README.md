@@ -27,6 +27,20 @@ make all
 The main `squircy` executable and all built plugins will be in `out/` after
 a successful build.
 
+Copy over the default config and plugins:
+```bash
+mkdir -p ~/.squircy/plugins
+cp config.toml.dist ~/.squircy/config.toml
+cp out/*.so ~/.squircy/plugins
+```
+
+Edit the default config, changing the `plugin_path` to be a fullpath, (~ doesn't work)
+```bash
+vim ~/.squircy/config.toml
+e.g. 
+plugin_path="/home/squishyjones/.squircy/plugins"
+```
+
 Run `squircy` in interactive mode with `-interactive`.
 
 ```bash
