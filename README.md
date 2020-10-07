@@ -19,7 +19,7 @@ compatibility including support for ES6+ features through babel.
 Clone this repository, then build using `make`.
 
 ```bash
-git clone git@code.dopame.me:veonik/squircy3
+git clone https://code.dopame.me/veonik/squircy3
 cd squircy3
 make all
 ```
