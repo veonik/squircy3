@@ -6,7 +6,7 @@ import (
 
 func TestConfigurable_withMap(t *testing.T) {
 	co := map[string]interface{}{}
-	s := newSetup("root")
+	s := newSetup("root", nil)
 	err := s.apply(WithInitValue(co))
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -41,7 +41,7 @@ type TestConfig struct {
 
 func TestConfigurable_withStruct(t *testing.T) {
 	co := &TestConfig{}
-	s := newSetup("root")
+	s := newSetup("root", nil)
 	err := s.apply(WithInitValue(co))
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)

@@ -38,10 +38,8 @@ type shimPlugin struct {
 }
 
 func (p *shimPlugin) Configure(c config.Config) error {
-	if gc, ok := c.(*config.Configurable); ok {
-		if gcv, ok := gc.Value.(*Config); ok {
-			return p.HelperSet.Configure(*gcv)
-		}
+	if gcv, ok := c.Self().(*Config); ok {
+		return p.HelperSet.Configure(*gcv)
 	}
 	cf := Config{}
 	cf.EnableFileAPI, _ = c.Bool("enable_file_api")

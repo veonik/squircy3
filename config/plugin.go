@@ -36,6 +36,7 @@ type configPlugin struct {
 	current     Config
 }
 
+// A configurablePlugin is a plugin that can be configured using this package.
 type configurablePlugin interface {
 	plugin.Plugin
 

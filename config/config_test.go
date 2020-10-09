@@ -7,7 +7,7 @@ import (
 	"code.dopame.me/veonik/squircy3/config"
 )
 
-func TestWrap(t *testing.T) {
+func TestWrapWithFieldStructPointer(t *testing.T) {
 	type Config struct {
 		Name string
 		Bio  *struct {
@@ -17,7 +17,7 @@ func TestWrap(t *testing.T) {
 	co := &Config{"veonik", &struct{ Age int }{30}}
 	c, err := config.Wrap(co,
 		config.WithRequiredOption("Name"),
-		config.WithGenericSection("Bio", config.WithInitValue(co.Bio), config.WithRequiredOption("Age")))
+		config.WithGenericSection("Bio", config.WithRequiredOption("Age")))
 	if err != nil {
 		t.Errorf("expected config to be valid, but got error: %s", err)
 		return
@@ -44,7 +44,7 @@ func TestWrap(t *testing.T) {
 	// veonik is 30.
 }
 
-func TestWrap2(t *testing.T) {
+func TestWrapWithFieldStructNonPointer(t *testing.T) {
 	type Config struct {
 		Name string
 		Bio  struct {
@@ -54,7 +54,7 @@ func TestWrap2(t *testing.T) {
 	co := &Config{"veonik", struct{ Age int }{30}}
 	c, err := config.Wrap(co,
 		config.WithRequiredOption("Name"),
-		config.WithGenericSection("Bio", config.WithInitValue(&co.Bio), config.WithRequiredOption("Age")))
+		config.WithGenericSection("Bio", config.WithRequiredOption("Age")))
 	if err != nil {
 		t.Errorf("expected config to be valid, but got error: %s", err)
 		return

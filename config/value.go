@@ -9,15 +9,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// configurable must implement Config.
+var _ Config = &configurable{}
+
 type configurableOpts map[string]Value
 
-type Configurable struct {
+// configurable is the default Config implementation.
+type configurable struct {
 	Value
 	options   configurableOpts
 	inspector *valueInspector
 }
 
-func newConfigurable(s *Setup) (*Configurable, error) {
+func newConfigurable(s *Setup) (*configurable, error) {
 	if isNil(s.initial) {
 		return nil, errors.New("unable to wrap <nil>")
 	}
@@ -25,7 +29,7 @@ func newConfigurable(s *Setup) (*Configurable, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &Configurable{Value: s.initial, options: make(configurableOpts), inspector: is}
+	c := &configurable{Value: s.initial, options: make(configurableOpts), inspector: is}
 	for k, v := range s.raw {
 		c.Set(k, v)
 	}
@@ -39,19 +43,23 @@ func newConfigurable(s *Setup) (*Configurable, error) {
 	return c, nil
 }
 
-func (c *Configurable) Get(key string) (Value, bool) {
-	if v, ok := c.options[key]; ok {
-		return v, true
-	}
+func (c *configurable) Self() Value {
+	return c.Value
+}
+
+func (c *configurable) Get(key string) (Value, bool) {
 	if v, err := c.inspector.Get(key); err == nil {
 		return v, true
 	} else {
+		if v, ok := c.options[key]; ok {
+			return v, true
+		}
 		logrus.Warnln("error getting value from config:", err)
 	}
 	return nil, false
 }
 
-func (c *Configurable) String(key string) (string, bool) {
+func (c *configurable) String(key string) (string, bool) {
 	v, ok := c.Get(key)
 	if !ok {
 		return "", false
@@ -62,7 +70,7 @@ func (c *Configurable) String(key string) (string, bool) {
 	return "", false
 }
 
-func (c *Configurable) Bool(key string) (bool, bool) {
+func (c *configurable) Bool(key string) (bool, bool) {
 	v, ok := c.Get(key)
 	if !ok {
 		return false, false
@@ -73,7 +81,7 @@ func (c *Configurable) Bool(key string) (bool, bool) {
 	return false, false
 }
 
-func (c *Configurable) Int(key string) (int, bool) {
+func (c *configurable) Int(key string) (int, bool) {
 	v, ok := c.Get(key)
 	if !ok {
 		return 0, false
@@ -84,7 +92,7 @@ func (c *Configurable) Int(key string) (int, bool) {
 	return 0, false
 }
 
-func (c *Configurable) Set(key string, val Value) {
+func (c *configurable) Set(key string, val Value) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println(err)
@@ -94,9 +102,9 @@ func (c *Configurable) Set(key string, val Value) {
 	c.inspector.Set(key, val)
 }
 
-func (c *Configurable) Section(key string) (Config, error) {
+func (c *configurable) Section(key string) (Config, error) {
 	v := c.options[key]
-	if vv, ok := v.(*Configurable); ok {
+	if vv, ok := v.(*configurable); ok {
 		return vv, nil
 	}
 	if s, ok := v.(Config); ok {
@@ -105,6 +113,8 @@ func (c *Configurable) Section(key string) (Config, error) {
 	return nil, errors.Errorf(`section "%s" contains unexpected type %T: %v`, key, v, v)
 }
 
+// A valueInspector abstracts the reading and modifying of a Value,
+// particularly structs, struct pointers, and map.
 type valueInspector struct {
 	value reflect.Value
 	typ   reflect.Type
@@ -142,7 +152,7 @@ func (i *valueInspector) Get(name string) (Value, error) {
 }
 
 func (i *valueInspector) Set(name string, val Value) {
-	if vc, ok := val.(*Configurable); ok {
+	if vc, ok := val.(*configurable); ok {
 		val = vc.Value
 	}
 	rv := reflect.ValueOf(val)
@@ -180,7 +190,7 @@ func (i *valueInspector) Set(name string, val Value) {
 func trySet(m reflect.Value, rv reflect.Value) {
 	defer func() {
 		if v := recover(); v != nil {
-			logrus.Warnln("config: recovered panic:", v)
+			logrus.Debugln("config: failed to set value using reflection:", v)
 		}
 	}()
 	want := m.Kind()
@@ -265,4 +275,16 @@ func isNil(v Value) bool {
 		return true
 	}
 	return false
+}
+
+// pointerTo returns a pointer to the given Value if it is not already one.
+func pointerTo(v Value) interface{} {
+	if v == nil {
+		return true
+	}
+	vo := reflect.ValueOf(v)
+	if vo.Kind() != reflect.Ptr && vo.CanAddr() {
+		return vo.Pointer()
+	}
+	return vo.Interface()
 }

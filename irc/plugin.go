@@ -58,11 +58,7 @@ func (p *ircPlugin) Configure(c config.Config) error {
 }
 
 func configFromGeneric(g config.Config) (c *Config, err error) {
-	gc, ok := g.(*config.Configurable)
-	if !ok {
-		return c, errors.Errorf("%s: value is not a *config.Configurable", pluginName)
-	}
-	if gcv, ok := gc.Value.(*Config); ok {
+	if gcv, ok := g.Self().(*Config); ok {
 		return gcv, nil
 	}
 	return c, errors.Errorf("%s: value is not a *irc.Config", pluginName)
