@@ -25,6 +25,9 @@ func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "%s: required dependency missing (vm)", PluginName)
 	}
+	if _, err := m.Lookup("babel"); err != nil {
+		return nil, errors.Wrapf(err, "%s: required dependency missing (babel)", PluginName)
+	}
 	vmp.SetModule(EventEmitter)
 	vmp.SetModule(ChildProcess)
 	vmp.SetModule(Crypto)
@@ -39,28 +42,37 @@ type nodeCompatPlugin struct {
 }
 
 func (p *nodeCompatPlugin) HandleRuntimeInit(r *goja.Runtime) {
-	if !p.EnableExec {
+	if r.Get("Babel") == nil {
+		logrus.Warnf("%s: babel is required but not enabled, disabling node_compat", PluginName)
 		return
 	}
-	v := r.NewObject()
-	if err := v.Set("Command", NewProcess); err != nil {
-		logrus.Warnf("%s: error initializing runtime: %s", PluginName, err)
+	if p.EnableExec {
+		logrus.Debugf("%s: subprocess execution is enabled", PluginName)
+		v := r.NewObject()
+		if err := v.Set("Command", NewProcess); err != nil {
+			logrus.Warnf("%s: error initializing exec.Command: %s", PluginName, err)
+		} else {
+			r.Set("exec", v)
+		}
+	} else {
+		logrus.Debugf("%s: subprocess execution is disabled", PluginName)
 	}
-	r.Set("exec", v)
 
-	v = r.NewObject()
+	v := r.NewObject()
 	if err := v.Set("Sum", func(b []byte) (string, error) {
 		return fmt.Sprintf("%x", sha1.Sum(b)), nil
 	}); err != nil {
-		logrus.Warnf("%s: error initializing runtime: %s", PluginName, err)
+		logrus.Warnf("%s: error initializing sha1.Sum: %s", PluginName, err)
+	} else {
+		r.Set("sha1", v)
 	}
-	r.Set("sha1", v)
 
 	v = r.NewObject()
 	if err := v.Set("Dial", native.Dial); err != nil {
-		logrus.Warnf("%s: error initializing runtime: %s", PluginName, err)
+		logrus.Warnf("%s: error initializing native.Dial: %s", PluginName, err)
+	} else {
+		r.Set("native", v)
 	}
-	r.Set("native", v)
 
 	_, err := r.RunString(`this.global = this.global || this;
 require('core-js-bundle');

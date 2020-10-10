@@ -8,3 +8,4 @@ testdata/yarn-error.log
 testdata/yarn.lock
 yarn.lock
 package-lock.json
+*-packr.go

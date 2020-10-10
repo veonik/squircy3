@@ -50,15 +50,16 @@ func (p *babelPlugin) PrependRuntimeInitHandler() bool {
 }
 
 func (p *babelPlugin) HandleRuntimeInit(gr *goja.Runtime) {
+	p.vm.SetTransformer(nil)
 	if !p.enable {
+		logrus.Debugf("babel: disabled, not initializing")
 		return
 	}
-	p.vm.SetTransformer(nil)
 	logrus.Infoln("Initializing babel.js transformer...")
 	st := time.Now()
 	b, err := babel.New(gr)
 	if err != nil {
-		logrus.Warnln("Failed to initialize babel.js:", err)
+		logrus.Warnln("babel: failed to initialize babel.js:", err)
 		return
 	}
 	logrus.Infof("Initialized babel.js transformer (took %s)", time.Now().Sub(st))

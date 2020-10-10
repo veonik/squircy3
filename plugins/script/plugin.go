@@ -1,6 +1,8 @@
 package main
 
 import (
+	"path/filepath"
+
 	"code.dopame.me/veonik/squircy3/config"
 	"code.dopame.me/veonik/squircy3/plugin"
 	"code.dopame.me/veonik/squircy3/vm"
@@ -58,31 +60,39 @@ func (p *scriptPlugin) HandleRuntimeInit(r *goja.Runtime) {
 	logrus.Infoln("Loading scripts from", p.manager.rootDir)
 	ss, err := p.manager.LoadAll()
 	if err != nil {
-		logrus.Warnln("Error loading scripts at runtime init:", err)
+		logrus.Warnf("script: failed to list directory contents of '%s': %s", p.manager.rootDir, err)
 		return
 	}
 	for _, s := range ss {
 		logrus.Infoln("Running script", s.Name)
 		pr, err := p.vm.Compile(s.Name, s.Body)
 		if err != nil {
-			logrus.Warnln("Error compiling script", s.Name, err)
+			logrus.Warnf("script: failed to compile script (%s): %s", s.Name, err)
 			return
 		}
 		_, err = r.RunProgram(pr)
 		if err != nil {
-			logrus.Warnln("Error running script", s.Name, err)
+			logrus.Warnf("script: error while running script (%s): %s", s.Name, err)
 		}
 	}
 }
 
 func (p *scriptPlugin) Options() []config.SetupOption {
-	return []config.SetupOption{config.WithRequiredOption("scripts_path")}
+	return []config.SetupOption{
+		config.WithRequiredOption("scripts_path"),
+		config.WithInheritedOption("root_path")}
 }
 
 func (p *scriptPlugin) Configure(conf config.Config) error {
 	r, ok := conf.String("scripts_path")
 	if !ok {
-		return errors.Errorf("%s: scripts_path cannot be empty", pluginName)
+		r = "scripts"
+	}
+	if !filepath.IsAbs(r) {
+		rr, ok := conf.String("root_path")
+		if ok {
+			r = filepath.Join(rr, r)
+		}
 	}
 	p.manager = &Manager{rootDir: r}
 	return nil

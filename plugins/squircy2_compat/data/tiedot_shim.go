@@ -32,10 +32,9 @@ func (d *DB) Use(name string) *Collection {
 	defer d.mu.Unlock()
 	if _, ok := d.open[name]; !ok {
 		dir := filepath.Join(d.rootPath, name)
-		_, err := os.Stat(dir)
-		if os.IsNotExist(err) {
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			if err := os.MkdirAll(dir, 0755); err != nil {
-				d.logger.Warnln("failed to create directory for collection:", err)
+				d.logger.Warnf("squircy2_compat: failed to create directory (%s) for collection: %s", dir, err)
 				return nil
 			}
 		}
@@ -127,7 +126,7 @@ func EvalQuery(q interface{}, src *Collection, result *map[int]struct{}) (err er
 func (c *Collection) ForEachDoc(fn func(id int, doc []byte) (moveOn bool)) {
 	fs, err := ioutil.ReadDir(c.basePath)
 	if err != nil {
-		c.logger.Warnln("failed to read data directory:", err)
+		c.logger.Warnf("squircy2_compat: failed to read data directory (%s): %s", c.basePath, err)
 		return
 	}
 	for _, f := range fs {

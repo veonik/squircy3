@@ -1,6 +1,9 @@
 package vm
 
 import (
+	"os"
+	"path/filepath"
+
 	"code.dopame.me/veonik/squircy3/config"
 	"code.dopame.me/veonik/squircy3/plugin"
 
@@ -48,6 +51,15 @@ func (p *vmPlugin) Configure(conf config.Config) error {
 	if !ok {
 		return errors.New("vm: modules_path cannot be empty")
 	}
+	if !filepath.IsAbs(r) {
+		if rr, ok := conf.String("root_path"); ok {
+			r = filepath.Join(rr, r)
+		}
+	}
+	logrus.Debugf("vm: configured with modules_path: %s", r)
+	if _, err := os.Stat(r); os.IsNotExist(err) {
+		logrus.Warnf("vm: modules_path '%s' does not exist, perhaps you need to run `yarn install`?", r)
+	}
 	vm, err := New(NewRegistry(r))
 	if err != nil {
 		return err
@@ -57,7 +69,9 @@ func (p *vmPlugin) Configure(conf config.Config) error {
 }
 
 func (p *vmPlugin) Options() []config.SetupOption {
-	return []config.SetupOption{config.WithRequiredOption("modules_path")}
+	return []config.SetupOption{
+		config.WithRequiredOption("modules_path"),
+		config.WithInheritedOption("root_path")}
 }
 
 func (p *vmPlugin) Name() string {

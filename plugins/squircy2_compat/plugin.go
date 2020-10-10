@@ -47,11 +47,12 @@ func (p *shimPlugin) Configure(c config.Config) error {
 	cf.OwnerNick, _ = c.String("owner_nick")
 	cf.OwnerHost, _ = c.String("owner_host")
 	cf.DataPath, _ = c.String("data_path")
+	cf.RootDir, _ = c.String("root_path")
 	return p.HelperSet.Configure(cf)
 }
 
 func (p *shimPlugin) Options() []config.SetupOption {
-	return []config.SetupOption{config.WithInitValue(&Config{})}
+	return []config.SetupOption{config.WithInitValue(&Config{}), config.WithInheritedOption("root_path")}
 }
 
 func (p *shimPlugin) Name() string {

@@ -2,7 +2,7 @@
 package cli
 
 import (
-	"fmt"
+	"flag"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -20,9 +20,13 @@ import (
 )
 
 type Config struct {
-	RootDir      string   `toml:"root_path"`
+	RootDir      string   `toml:"root_path",flag:"root"`
 	PluginDir    string   `toml:"plugin_path"`
 	ExtraPlugins []string `toml:"extra_plugins"`
+
+	PluginOptions map[string]interface{}
+
+	LogLevel string `toml:"log_level"`
 
 	// Specify additional plugins that are a part of the main executable.
 	LinkedPlugins []plugin.Initializer
@@ -36,7 +40,7 @@ type Manager struct {
 	stop chan os.Signal
 }
 
-func NewManager(rootDir string, extraPlugins ...string) (*Manager, error) {
+func NewManager(rootDir string, pluginOptions map[string]interface{}, extraPlugins ...string) (*Manager, error) {
 	m := plugin.NewManager()
 	// initialize only the config plugin so that it can be configured before
 	// other plugins are initialized
@@ -45,15 +49,18 @@ func NewManager(rootDir string, extraPlugins ...string) (*Manager, error) {
 		return nil, err
 	}
 	conf := Config{
-		RootDir:      rootDir,
-		PluginDir:    filepath.Join(rootDir, "plugins"),
-		ExtraPlugins: extraPlugins,
+		RootDir:       rootDir,
+		PluginDir:     filepath.Join(rootDir, "plugins"),
+		ExtraPlugins:  extraPlugins,
+		PluginOptions: pluginOptions,
 	}
 	// configure the config plugin!
 	cf := filepath.Join(rootDir, "config.toml")
 	err := config.ConfigurePlugin(m,
 		config.WithInitValue(&conf),
-		config.WithValuesFromTOMLFile(cf))
+		config.WithValuesFromTOMLFile(cf),
+		config.WithValuesFromFlagSet(flag.CommandLine),
+		config.WithValuesFromMap(conf.PluginOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -128,9 +135,9 @@ func (manager *Manager) Loop() error {
 	for {
 		select {
 		case <-manager.stop:
-			logrus.Infoln("shutting down")
+			logrus.Infoln("Shutting down...")
 			if err := manager.Shutdown(); err != nil {
-				logrus.Warnln("error shutting down:", err)
+				logrus.Warnln("core: error shutting down:", err)
 			}
 			return nil
 		case s := <-st:
@@ -138,16 +145,16 @@ func (manager *Manager) Loop() error {
 			case syscall.SIGHUP:
 				myVM, err := vm.FromPlugins(manager.plugins)
 				if err != nil {
-					logrus.Warnln("unable to reload js vm:", err)
+					logrus.Warnln("core: unable to reload js vm:", err)
 					continue
 				}
-				logrus.Infoln("reloading javascript vm")
+				logrus.Infoln("Reloading javascript vm")
 				if err := myVM.Shutdown(); err != nil {
-					logrus.Warnln("unable to reload js vm:", err)
+					logrus.Warnln("core: unable to reload js vm:", err)
 					continue
 				}
 				if err := myVM.Start(); err != nil {
-					logrus.Warnln("unable to restart js vm:", err)
+					logrus.Warnln("core: unable to restart js vm:", err)
 					continue
 				}
 			case os.Interrupt:
@@ -155,7 +162,7 @@ func (manager *Manager) Loop() error {
 			case syscall.SIGTERM:
 				manager.Stop()
 			default:
-				logrus.Infoln("received signal", s, "but not doing anything with it")
+				logrus.Debugln("Received signal", s, "but not doing anything with it")
 			}
 		}
 	}
@@ -171,7 +178,7 @@ func configure(m *plugin.Manager) error {
 	errs := m.Configure()
 	if errs != nil && len(errs) > 0 {
 		if len(errs) > 1 {
-			return errors.WithMessage(errs[0], fmt.Sprintf("(and %d more...)", len(errs)-1))
+			return errors.Wrapf(errs[0], "(and %d more...)", len(errs)-1)
 		}
 		return errs[0]
 	}

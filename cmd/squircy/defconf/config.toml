@@ -1,4 +1,4 @@
-plugin_path="/squircy/plugins"
+plugin_path="out"
 extra_plugins=[
   "babel.so",
   "node_compat.so",
@@ -17,21 +17,20 @@ sasl=false
 #server_password=""
 
 [vm]
-modules_path="/home/squircy/.squircy/scripts/node_modules"
+modules_path="node_modules"
 
 [babel]
 enable=true
 
 [script]
-scripts_path="/home/squircy/.squircy/scripts"
+scripts_path="scripts"
 
 [squircy2_compat]
 enable_file_api=false
-file_api_root="/home/squircy/.squircy/files"
+file_api_root="files"
 #owner_nick=""
 #owner_host=""
-data_path="/home/squircy/.squircy/data"
+data_path="data"
 
 [node_compat]
 enable_exec=false
-

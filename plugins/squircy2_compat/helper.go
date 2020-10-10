@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -24,6 +25,8 @@ type Config struct {
 	OwnerNick     string `toml:"owner_nick"`
 	OwnerHost     string `toml:"owner_host"`
 	DataPath      string `toml:"data_path"`
+
+	RootDir string `flag:"root_path"`
 }
 
 type HelperSet struct {
@@ -54,6 +57,25 @@ func NewHelperSet(e *event.Dispatcher, v *vm.VM, i *irc.Manager) *HelperSet {
 }
 
 func (p *HelperSet) Configure(c Config) error {
+	if !filepath.IsAbs(c.FileAPIPath) {
+		c.FileAPIPath = filepath.Join(c.RootDir, c.FileAPIPath)
+	}
+	if c.EnableFileAPI {
+		// only need to bother with this check if it is indeed enabled
+		if _, err := os.Stat(c.FileAPIPath); os.IsNotExist(err) {
+			logrus.Warnf("squircy2_compat: file_api_path '%s' does not exist, disabling file api", c.FileAPIPath)
+			c.EnableFileAPI = false
+		}
+	}
+	if !filepath.IsAbs(c.DataPath) {
+		c.DataPath = filepath.Join(c.RootDir, c.DataPath)
+	}
+	if _, err := os.Stat(c.DataPath); os.IsNotExist(err) {
+		logrus.Warnf("squircy2_compat: data_path '%s' does not exist, creating", c.DataPath)
+		if err := os.MkdirAll(c.DataPath, 0755); err != nil {
+			logrus.Warnf("squircy2_compat: db functions may not work, failed to create data_path '%s': %s", c.DataPath, err)
+		}
+	}
 	p.Config = &c
 	p.file = fileHelper{c.EnableFileAPI, c.FileAPIPath}
 	p.conf = configHelper{c.OwnerNick, c.OwnerHost}
