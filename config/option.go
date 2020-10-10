@@ -1,12 +1,7 @@
 package config
 
 import (
-	"flag"
-	"strings"
-
-	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 // A Section describes the pre-configured state of a nested configuration
@@ -145,120 +140,7 @@ func WithInheritedOption(name string) SetupOption {
 }
 
 // WithInheritedSection will inherit a section from the parent Config.
+// Alias for WithInheritedOption.
 func WithInheritedSection(name string) SetupOption {
 	return WithInheritedOption(name)
-}
-
-// WithValuesFromTOMLFile will populate the Config with values parsed from a
-// TOML file.
-func WithValuesFromTOMLFile(filename string) SetupOption {
-	return func(s *Setup) error {
-		if s.raw == nil {
-			s.raw = make(map[string]interface{})
-		}
-		if _, err := toml.DecodeFile(filename, &s.raw); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-type flagMapper struct {
-	s *Setup
-}
-
-func newFlagMapper(s *Setup) *flagMapper {
-	return &flagMapper{s}
-}
-
-func (fm *flagMapper) normalize(name string) string {
-	return strings.ToLower(
-		strings.ReplaceAll(name, "-", "_"))
-}
-
-// Map converts a flag name into a path based on sections and options.
-// If a Config has sections "A" and "B" has an option "c", then the flag
-// named "-a-b-c" would be converted into the path ["A","B","c"].
-func (fm *flagMapper) Map(flagName string) (path []string) {
-	normal := fm.normalize(flagName)
-	s := fm.s
-loop:
-	for s != nil {
-		// a valueInspector here handles struct tag aliases.
-		is, err := inspect(s.initial)
-		if err != nil {
-			logrus.Debugf("config: unable to create valueInspector for %s: %s", s.name, err)
-		} else {
-			if _, err := is.Get(normal); err == nil {
-				path = append(path, normal)
-				s = nil
-				goto loop
-			} else {
-				logrus.Debugf("config: valueInspector returned error for %s in %s: %s", normal, s.name, err)
-			}
-		}
-		// check for a match in options next
-		for k := range s.options {
-			kn := fm.normalize(k)
-			if kn == normal {
-				// found it
-				path = append(path, k)
-				s = nil
-				goto loop
-			}
-		}
-		// check for a matching section, using the name as a prefix
-		for k, ks := range s.sections {
-			kn := fm.normalize(k) + "_"
-			if strings.HasPrefix(normal, kn) {
-				// found the next step in the path
-				normal = strings.Replace(normal, kn, "", 1)
-				path = append(path, k)
-				s = ks
-				goto loop
-			}
-		}
-		return nil
-	}
-	return path
-}
-
-// WithValuesFromFlagSet populates the Config using command-line flags.
-func WithValuesFromFlagSet(fs *flag.FlagSet) SetupOption {
-	return func(s *Setup) error {
-		if !fs.Parsed() {
-			return errors.Errorf("given FlagSet must be parsed")
-		}
-		if s.raw == nil {
-			s.raw = make(map[string]interface{})
-		}
-		m := newFlagMapper(s)
-		fs.Visit(func(f *flag.Flag) {
-			path := m.Map(f.Name)
-			if len(path) == 0 {
-				logrus.Debugf("config: did not match anything for flag '%s' for section %s", f.Name, s.name)
-				return
-			}
-			var val interface{} = f.Value.String()
-			if fg, ok := f.Value.(flag.Getter); ok {
-				val = fg.Get()
-			}
-			v := s.raw
-			i := 0
-			for i = 0; i < len(path)-1; i++ {
-				if vs, ok := v[path[i]].(map[string]interface{}); ok {
-					v = vs
-				} else {
-					if vr, ok := v[path[i]]; ok {
-						logrus.Debugf("config: overriding existing value in raw config for %s -- was type %T", f.Name, vr)
-					}
-					nv := make(map[string]interface{})
-					v[path[i]] = nv
-					v = nv
-				}
-			}
-			v[path[i]] = val
-		})
-		return nil
-	}
 }

@@ -9,6 +9,14 @@ import (
 // A SetupOption is a function that modifies the given Setup in some way.
 type SetupOption func(c *Setup) error
 
+// A postSetupOption is a SetupOption that runs after all other SetupOptions.
+// SetupOptions that populate the config from a data source (ie. options with
+// method name like "WithValuesFrom*") are examples of postSetupOptions. This
+// allows postSetupOptions to consume the metadata stored within the Setup
+// while populating values from the data source.
+type postSetupOption func(c *Setup) error
+
+// A protoFunc is a function that returns the initial value for a config.
 type protoFunc func() Value
 
 // Setup is a container struct with information on how to setup a given Config.
@@ -26,6 +34,8 @@ type Setup struct {
 	sections map[string]*Setup
 	options  map[string]bool
 	inherits map[string]struct{}
+
+	post []postSetupOption
 }
 
 func newSetup(name string, parent *Setup) *Setup {
@@ -43,9 +53,24 @@ func newSetup(name string, parent *Setup) *Setup {
 	}
 }
 
+// addPostSetup adds one or more postSetupOptions.
+func (s *Setup) addPostSetup(options ...postSetupOption) error {
+	s.post = append(s.post, options...)
+	return nil
+}
+
 // apply calls each SetupOption, halting on the first error encountered.
 func (s *Setup) apply(options ...SetupOption) error {
+	// clear post options, they will be re-added by the regular options.
+	s.post = []postSetupOption{}
+	// apply regular options.
 	for _, o := range options {
+		if err := o(s); err != nil {
+			return err
+		}
+	}
+	// apply post-setup options.
+	for _, o := range s.post {
 		if err := o(s); err != nil {
 			return err
 		}
@@ -53,7 +78,7 @@ func (s *Setup) apply(options ...SetupOption) error {
 	return nil
 }
 
-// validate checks that all required options are set, recursively.
+// validate checks that all options and sections are valid, recursively.
 func (s *Setup) validate() error {
 	if s.config == nil {
 		return errors.New(`expected config to be populated, found nil`)
