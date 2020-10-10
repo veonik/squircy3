@@ -6,6 +6,9 @@ WORKDIR /squircy
 
 COPY . .
 
+RUN go get -v github.com/gobuffalo/packr/v2/... && \
+    go install github.com/gobuffalo/packr/v2
+
 RUN go get -v ./...
 
 RUN make clean all RACE=${race}
