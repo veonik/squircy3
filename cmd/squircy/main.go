@@ -114,7 +114,7 @@ func init() {
 	flag.Usage = func() {
 		fmt.Println("Usage: ", os.Args[0], "[options]")
 		fmt.Println()
-		fmt.Println("squircy is a proper IRC bot.")
+		fmt.Println("squircy is an IRC bot.")
 		fmt.Println()
 		fmt.Println("Options:")
 		flag.PrintDefaults()
