@@ -9,7 +9,7 @@ extra_plugins=[
 [irc]
 nick="squishyjones"
 user="mrjones"
-network="chat.freenode.net:6697"
+network="irc.libera.chat:6697"
 tls=true
 sasl=false
 #sasl_username=""
