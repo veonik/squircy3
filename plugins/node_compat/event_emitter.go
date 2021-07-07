@@ -1,8 +1,8 @@
-package main
+package node_compat
 
 import "code.dopame.me/veonik/squircy3/vm"
 
-// Module EventEmitter is a polyfill for the node events module.
+// EventEmitter is a polyfill for the node events module.
 // See https://gist.github.com/mudge/5830382
 // Modified to add listenerCount instance method.
 var EventEmitter = &vm.Module{

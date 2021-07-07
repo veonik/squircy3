@@ -1,4 +1,4 @@
-package main
+package squircy2_compat
 
 import (
 	"bytes"
@@ -137,13 +137,13 @@ func (client *httpHelper) Post(uri string, body string, headers ...string) strin
 	req.URL, _ = url.Parse(uri)
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
+		logrus.Warnln("failed to perform http request:", err)
 		return ""
 	}
 	defer resp.Body.Close()
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println(err)
+		logrus.Warnln("failed to read http response body:", err)
 		return ""
 	}
 	return string(b)

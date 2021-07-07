@@ -1,8 +1,6 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 )
 
@@ -19,6 +17,12 @@ type postSetupOption func(c *Setup) error
 // A protoFunc is a function that returns the initial value for a config.
 type protoFunc func() Value
 
+// An optionFilter modifies the received value and returns the result.
+type optionFilter func(name string, val Value) (Value, error)
+
+// An optionValidator returns an error if the given value is invalid.
+type optionValidator func(name string, val Value) error
+
 // Setup is a container struct with information on how to setup a given Config.
 type Setup struct {
 	name      string
@@ -31,9 +35,12 @@ type Setup struct {
 
 	raw map[string]interface{}
 
-	sections map[string]*Setup
-	options  map[string]bool
-	inherits map[string]struct{}
+	sectionsOrdered []*Setup
+	sections        map[string]*Setup
+	optionsOrdered  []string
+	options         map[string][]optionValidator
+	filters         map[string][]optionFilter
+	inherits        []string
 
 	post []postSetupOption
 }
@@ -48,14 +55,20 @@ func newSetup(name string, parent *Setup) *Setup {
 		parent:    parent,
 		raw:       make(map[string]interface{}),
 		sections:  make(map[string]*Setup),
-		options:   make(map[string]bool),
-		inherits:  make(map[string]struct{}),
+		options:   make(map[string][]optionValidator),
+		filters:   make(map[string][]optionFilter),
 	}
 }
 
-// addPostSetup adds one or more postSetupOptions.
-func (s *Setup) addPostSetup(options ...postSetupOption) error {
+// appendPostSetup adds one or more postSetupOptions to the end.
+func (s *Setup) appendPostSetup(options ...postSetupOption) error {
 	s.post = append(s.post, options...)
+	return nil
+}
+
+// prependPostSetup adds one or more postSetupOptions to the beginning.
+func (s *Setup) prependPostSetup(options ...postSetupOption) error {
+	s.post = append(append([]postSetupOption{}, options...), s.post...)
 	return nil
 }
 
@@ -83,15 +96,11 @@ func (s *Setup) validate() error {
 	if s.config == nil {
 		return errors.New(`expected config to be populated, found nil`)
 	}
-	for o, reqd := range s.options {
-		if reqd {
-			var nilValue Value
-			v, ok := s.config.Get(o)
-			if !ok || v == nil || v == nilValue {
-				return errors.Errorf(`required option "%s" is empty`, o)
-			}
-			if vs, ok := v.(string); ok && len(vs) == 0 {
-				return errors.Errorf(`required option "%s" is empty`, o)
+	for o, ovs := range s.options {
+		for _, validator := range ovs {
+			v, _ := s.config.Get(o)
+			if err := validator(o, v); err != nil {
+				return errors.Wrapf(err, `failed to validate option "%s"`, o)
 			}
 		}
 	}
@@ -107,7 +116,7 @@ func (s *Setup) validate() error {
 func walkAndWrap(s *Setup) error {
 	wrapErr := func(err error) error {
 		if s.name != "root" {
-			return errors.WithMessage(err, fmt.Sprintf("section %s", s.name))
+			return errors.WithMessage(err, "section "+s.name)
 		}
 		return err
 	}
@@ -142,7 +151,7 @@ func walkAndWrap(s *Setup) error {
 // walkInherits synchronizes inherited options and sections between this and
 // the parent.
 func walkInherits(s *Setup) error {
-	for si := range s.inherits {
+	for _, si := range s.inherits {
 		if s.parent == nil {
 			return errors.Errorf("unable to inherit option %s from non-existent parent", si)
 		}
@@ -161,7 +170,7 @@ func walkInherits(s *Setup) error {
 
 // walkSections walks through each section, populating a Config for each.
 func walkSections(s *Setup) error {
-	for _, ns := range s.sections {
+	for _, ns := range s.sectionsOrdered {
 		if v, ok := s.raw[ns.name].(map[string]interface{}); ok {
 			ns.raw = v
 		}

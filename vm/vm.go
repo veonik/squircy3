@@ -1,3 +1,9 @@
+// Package vm is an extendable, embeddable javascript interpreter for squircy3.
+//
+// This package embeds goja (https://github.com/dop251/goja) as the javascript
+// parser and executor, improving on it with a concurrency-safe API, intuitive
+// API for dealing with asynchronous results, and basic compatibility with
+// NodeJS's require() function.
 package vm // import "code.dopame.me/veonik/squircy3/vm"
 
 import (
@@ -9,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// A VM manages the state and environment of a javascript interpreter.
 type VM struct {
 	registry  *Registry
 	scheduler *scheduler

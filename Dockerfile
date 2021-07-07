@@ -1,6 +1,10 @@
-FROM golang:buster AS build
+FROM golang:alpine AS build
 
 ARG race
+ARG plugin_type=shared
+
+RUN apk update && \
+    apk add yarn alpine-sdk upx
 
 WORKDIR /squircy
 
@@ -11,19 +15,13 @@ RUN go get -v github.com/gobuffalo/packr/v2/... && \
 
 RUN go get -v ./...
 
-RUN make clean all RACE=${race}
+RUN make clean dist RACE=${race} PLUGIN_TYPE=${plugin_type}
 
 
-FROM debian:buster-slim
+FROM alpine:latest
 
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y ca-certificates curl gnupg
-
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
-    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
-    apt-get update && \
-    apt-get install -y yarn
+RUN apk update && \
+    apk add ca-certificates curl gnupg yarn
 
 COPY config.toml.dist /home/squircy/.squircy/config.toml
 
@@ -32,7 +30,7 @@ COPY package.json /home/squircy/.squircy/scripts/package.json
 RUN cd /home/squircy/.squircy/scripts && \
     yarn install
 
-RUN useradd -d /home/squircy squircy
+RUN adduser -D -h /home/squircy squircy
 
 RUN chown -R squircy: /home/squircy
 
@@ -40,7 +38,7 @@ USER squircy
 
 WORKDIR /squircy
 
-COPY --from=build /squircy/out/squircy /bin/squircy
+COPY --from=build /squircy/out/squircy_linux_amd64 /bin/squircy
 
 COPY --from=build /squircy/out/*.so /squircy/plugins/
 

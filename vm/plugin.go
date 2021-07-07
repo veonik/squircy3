@@ -26,6 +26,7 @@ func pluginFromPlugins(m *plugin.Manager) (*vmPlugin, error) {
 	return mp, nil
 }
 
+// FromPlugins returns the vm plugin's VM or an error if it fails.
 func FromPlugins(m *plugin.Manager) (*VM, error) {
 	mp, err := pluginFromPlugins(m)
 	if err != nil {
@@ -37,7 +38,8 @@ func FromPlugins(m *plugin.Manager) (*VM, error) {
 	return mp.vm, nil
 }
 
-func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
+// Initialize is a plugin.Initializer that initializes a vm plugin.
+func Initialize(*plugin.Manager) (plugin.Plugin, error) {
 	p := &vmPlugin{}
 	return p, nil
 }
@@ -78,11 +80,18 @@ func (p *vmPlugin) Name() string {
 	return pluginName
 }
 
+// A RuntimeInitHandler initializes a newly created goja.Runtime.
 type RuntimeInitHandler interface {
+	// Initialize and configure the given runtime.
 	HandleRuntimeInit(r *goja.Runtime)
 }
 
+// A PrependRuntimeInitHandler is a RuntimeInitHandler that may be added at
+// the start of the list of handlers.
 type PrependRuntimeInitHandler interface {
+	RuntimeInitHandler
+	// PrependRuntimeInitHandler returns true if the handler should be added
+	// to the start of the list of handlers.
 	PrependRuntimeInitHandler() bool
 }
 

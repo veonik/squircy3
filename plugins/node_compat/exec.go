@@ -1,4 +1,4 @@
-package main
+package node_compat
 
 import (
 	"bytes"
@@ -62,7 +62,7 @@ func NewProcess(command string, args ...string) *Process {
 	return p
 }
 
-// start starts the process, leaving stdin open for writing.
+// Start starts the process, leaving stdin open for writing.
 //
 // If the started process reads from stdin, it may not exit until
 // CloseInput is called.

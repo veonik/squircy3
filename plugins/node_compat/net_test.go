@@ -1,4 +1,4 @@
-package main_test
+package node_compat_test
 
 import (
 	"crypto/sha1"
@@ -6,12 +6,12 @@ import (
 	"os"
 	"testing"
 
+	"code.dopame.me/veonik/squircy3/plugins/node_compat"
 	"github.com/dop251/goja"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	babel "code.dopame.me/veonik/squircy3/plugins/babel/transformer"
-	node_compat "code.dopame.me/veonik/squircy3/plugins/node_compat"
 	"code.dopame.me/veonik/squircy3/plugins/node_compat/native"
 	"code.dopame.me/veonik/squircy3/vm"
 )

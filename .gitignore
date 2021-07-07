@@ -2,8 +2,7 @@
 !.gitignore
 !.dockerignore
 out/*
-node_modules/*
-testdata/node_modules/*
+node_modules
 testdata/yarn-error.log
 testdata/yarn.lock
 yarn.lock

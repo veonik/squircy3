@@ -6,6 +6,7 @@ import (
 	"code.dopame.me/veonik/squircy3/plugin"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const pluginName = "irc"
@@ -22,6 +23,7 @@ func pluginFromPlugins(m *plugin.Manager) (*ircPlugin, error) {
 	return mp, nil
 }
 
+// FromPlugins returns the irc plugin's Manager or an error if it fails.
 func FromPlugins(m *plugin.Manager) (*Manager, error) {
 	mp, err := pluginFromPlugins(m)
 	if err != nil {
@@ -33,6 +35,7 @@ func FromPlugins(m *plugin.Manager) (*Manager, error) {
 	return mp.manager, nil
 }
 
+// Initialize is a plugin.Initializer that initializes an irc plugin.
 func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
 	ev, err := event.FromPlugins(m)
 	if err != nil {
@@ -55,6 +58,16 @@ func (p *ircPlugin) Configure(c config.Config) error {
 	}
 	p.manager = NewManager(co, p.events)
 	return nil
+}
+
+func (p *ircPlugin) HandleShutdown() {
+	if p.manager == nil {
+		logrus.Warnln("irc: shutting down uninitialized plugin")
+		return
+	}
+	if err := p.manager.Disconnect(); err != nil {
+		logrus.Warnln("irc: failed to disconnect before shutting down:", err)
+	}
 }
 
 func configFromGeneric(g config.Config) (c *Config, err error) {

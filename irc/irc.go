@@ -1,3 +1,4 @@
+// Package irc is used to manage a client IRC connection as a squircy3 plugin.
 package irc // import "code.dopame.me/veonik/squircy3/irc"
 
 import (
@@ -64,7 +65,7 @@ func (conn *Connection) Connect() error {
 	return conn.Connection.Connect(conn.current.Network)
 }
 
-func (conn *Connection) Quit() error {
+func (conn *Connection) Quit() (err error) {
 	select {
 	case <-conn.done:
 		// already done, nothing to do
@@ -83,7 +84,21 @@ func (conn *Connection) Quit() error {
 		break
 
 	case <-time.After(1 * time.Second):
-		go conn.Connection.Disconnect()
+		go func() {
+			// go-ircevent may close irc.pwrite multiple times, so catch
+			// the ensuing panic when it happens.
+			// todo: try to fix this upstream
+			defer func() {
+				if e := recover(); err != nil {
+					if er, ok := err.(error); ok {
+						err = errors.Wrapf(er, "error during disconnect")
+						return
+					}
+					err = errors.Errorf("error during disconnect: %v", e)
+				}
+			}()
+			conn.Connection.Disconnect()
+		}()
 		return errors.Errorf("timed out waiting for quit")
 	}
 	return nil
@@ -123,7 +138,7 @@ func NewManager(c *Config, ev *event.Dispatcher) *Manager {
 	m := &Manager{config: c, events: ev}
 	if c.AutoConnect {
 		go func() {
-			<-time.After(500 * time.Millisecond)
+			<-time.After(1 * time.Second)
 			logrus.Infof("Auto-connecting...")
 			if err := m.Connect(); err != nil {
 				logrus.Errorln("failed to autoconnect:", err)
@@ -143,15 +158,6 @@ func (m *Manager) Do(fn func(*Connection) error) error {
 	conn.Lock()
 	defer conn.Unlock()
 	return fn(conn)
-}
-
-func (m *Manager) Connection() (*Connection, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	if m.conn == nil {
-		return nil, errors.New("not connected")
-	}
-	return m.conn, nil
 }
 
 func newConnection(c Config) *Connection {

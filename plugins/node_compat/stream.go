@@ -1,10 +1,10 @@
-package main
+package node_compat
 
 import (
 	"code.dopame.me/veonik/squircy3/vm"
 )
 
-// Module Stream is based on stream-browserify and relies on readable-stream.
+// Stream is based on stream-browserify and relies on readable-stream.
 // See https://github.com/browserify/stream-browserify/blob/v3.0.0/index.js
 var Stream = &vm.Module{
 	Name: "stream",

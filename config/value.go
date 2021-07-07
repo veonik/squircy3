@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/fatih/structtag"
@@ -19,6 +18,8 @@ type configurable struct {
 	Value
 	options   configurableOpts
 	inspector *valueInspector
+
+	filters map[string][]optionFilter
 }
 
 func newConfigurable(s *Setup) (*configurable, error) {
@@ -29,11 +30,12 @@ func newConfigurable(s *Setup) (*configurable, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &configurable{Value: s.initial, options: make(configurableOpts), inspector: is}
+	c := &configurable{Value: s.initial, options: make(configurableOpts), filters: s.filters, inspector: is}
 	for k, v := range s.raw {
+		logrus.Tracef("Setting %s.%s to %T(%v)", s.name, k, v, v)
 		c.Set(k, v)
 	}
-	for k := range s.options {
+	for _, k := range s.optionsOrdered {
 		v, err := c.inspector.Get(k)
 		if err != nil {
 			return nil, err
@@ -95,9 +97,16 @@ func (c *configurable) Int(key string) (int, bool) {
 func (c *configurable) Set(key string, val Value) {
 	defer func() {
 		if err := recover(); err != nil {
-			fmt.Println(err)
+			logrus.Errorf("config: unexpected panic while trying to set option %s: %s", key, err)
 		}
 	}()
+	for _, filter := range c.filters[key] {
+		if nv, err := filter(key, val); err != nil {
+			logrus.Errorf("config: error while filtering value for option %s: %s", key, err)
+		} else {
+			val = nv
+		}
+	}
 	c.options[key] = val
 	c.inspector.Set(key, val)
 }
@@ -147,6 +156,10 @@ func inspect(v Value) (*valueInspector, error) {
 	}, nil
 }
 
+func (i *valueInspector) Normalize(name string) (string, error) {
+	return i.realName(name)
+}
+
 func (i *valueInspector) Get(name string) (Value, error) {
 	return i.valueNamed(name)
 }
@@ -177,6 +190,11 @@ func (i *valueInspector) Set(name string, val Value) {
 						res = append(res, vs)
 					}
 				}
+			} else if v, ok := val.([]string); ok {
+				res = v
+			} else {
+				logrus.Warnf("config: unsupported value type for slice: %T", val)
+				return
 			}
 			rv = reflect.ValueOf(res)
 		default:
@@ -210,7 +228,7 @@ func (i *valueInspector) valueNamed(name string) (Value, error) {
 	if i.value.Kind() == reflect.Map {
 		m = i.value.MapIndex(reflect.ValueOf(name))
 		if !m.IsValid() {
-			return nil, nil
+			return nil, errors.New("no field with name " + name)
 		}
 	} else {
 		if t, ok := i.tags[name]; ok {
@@ -226,6 +244,27 @@ func (i *valueInspector) valueNamed(name string) (Value, error) {
 	return m.Elem(), nil
 }
 
+func (i *valueInspector) realName(name string) (string, error) {
+	var m reflect.Value
+	var res string
+	if i.value.Kind() == reflect.Map {
+		m = i.value.MapIndex(reflect.ValueOf(name))
+		res = name
+		if !m.IsValid() {
+			return res, nil
+		}
+	} else {
+		if t, ok := i.tags[name]; ok {
+			m = i.value.FieldByIndex(t.Index)
+			res = t.CanonName
+		}
+		if !m.IsValid() {
+			return res, errors.New("no field with name " + name)
+		}
+	}
+	return res, nil
+}
+
 type structTag struct {
 	Key   string
 	Name  string
@@ -233,8 +272,9 @@ type structTag struct {
 }
 
 type structField struct {
-	Name  string
-	Index []int
+	Name      string
+	CanonName string
+	Index     []int
 }
 
 func structTags(v Value) ([]structTag, []structField, error) {
@@ -250,14 +290,21 @@ func structTags(v Value) ([]structTag, []structField, error) {
 	tt := t.Type()
 	for i := 0; i < tt.NumField(); i++ {
 		f := tt.Field(i)
-		ff := structField{f.Name, f.Index}
+		ff := structField{f.Name, "", f.Index}
 		fields = append(fields, ff)
 		tgs, err := structtag.Parse(string(f.Tag))
 		if err != nil {
 			return nil, nil, err
 		}
 		for _, tg := range tgs.Tags() {
+			if len(ff.CanonName) == 0 {
+				// try to use the first tag as the canonical name for each field
+				ff.CanonName = tg.Name
+			}
 			tags = append(tags, structTag{Key: tg.Key, Name: tg.Name, Field: ff})
+		}
+		if len(ff.CanonName) == 0 {
+			ff.CanonName = normalizeName(ff.Name)
 		}
 	}
 	return tags, fields, nil

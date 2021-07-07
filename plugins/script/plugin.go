@@ -1,4 +1,4 @@
-package main
+package script
 
 import (
 	"path/filepath"
@@ -12,10 +12,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const pluginName = "script"
+const PluginName = "script"
 
 func main() {
-	plugin.Main(pluginName)
+	plugin.Main(PluginName)
 }
 
 // Initialize is a valid plugin.Initializer
@@ -34,19 +34,19 @@ func FromPlugins(m *plugin.Manager) (*Manager, error) {
 		return nil, err
 	}
 	if mp.manager == nil {
-		return nil, errors.Errorf("%s: plugin is not configured", pluginName)
+		return nil, errors.Errorf("%s: plugin is not configured", PluginName)
 	}
 	return mp.manager, nil
 }
 
 func pluginFromPlugins(m *plugin.Manager) (*scriptPlugin, error) {
-	p, err := m.Lookup(pluginName)
+	p, err := m.Lookup(PluginName)
 	if err != nil {
 		return nil, err
 	}
 	mp, ok := p.(*scriptPlugin)
 	if !ok {
-		return nil, errors.Errorf("%s: received unexpected plugin type", pluginName)
+		return nil, errors.Errorf("%s: received unexpected plugin type", PluginName)
 	}
 	return mp, nil
 }
@@ -99,5 +99,5 @@ func (p *scriptPlugin) Configure(conf config.Config) error {
 }
 
 func (p *scriptPlugin) Name() string {
-	return pluginName
+	return PluginName
 }

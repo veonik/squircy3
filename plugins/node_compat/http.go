@@ -1,8 +1,8 @@
-package main
+package node_compat
 
 import "code.dopame.me/veonik/squircy3/vm"
 
-// Module Http is a polyfill for the node http module.
+// Http is a polyfill for the node http module.
 var Http = &vm.Module{
 	Name: "http",
 	Main: "index",

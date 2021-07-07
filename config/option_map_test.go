@@ -24,7 +24,7 @@ func TestWithValuesFromMap(t *testing.T) {
 	c, err := config.Wrap(co,
 		config.WithRequiredOption("Name"),
 		config.WithGenericSection("Bio", config.WithRequiredOption("Age")),
-		config.WithValuesFromMap(opts))
+		config.WithValuesFromMap(&opts))
 	if err != nil {
 		t.Errorf("expected config to be valid, but got error: %s", err)
 		return

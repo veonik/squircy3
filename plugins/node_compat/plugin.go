@@ -1,4 +1,4 @@
-package main
+package node_compat
 
 import (
 	"crypto/sha1"
@@ -15,10 +15,6 @@ import (
 )
 
 const PluginName = "node_compat"
-
-func main() {
-	plugin.Main(PluginName)
-}
 
 func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
 	vmp, err := vm.FromPlugins(m)

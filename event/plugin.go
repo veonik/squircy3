@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// FromPlugins returns the event plugin's Dispatcher or an error if it fails.
 func FromPlugins(m *plugin.Manager) (*Dispatcher, error) {
 	plg, err := m.Lookup("event")
 	if err != nil {
@@ -18,7 +19,8 @@ func FromPlugins(m *plugin.Manager) (*Dispatcher, error) {
 	return mplg.dispatcher, nil
 }
 
-func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
+// Initialize is a plugin.Initializer that initializes an event plugin.
+func Initialize(*plugin.Manager) (plugin.Plugin, error) {
 	p := &eventPlugin{NewDispatcher()}
 	return p, nil
 }

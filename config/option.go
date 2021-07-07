@@ -63,6 +63,7 @@ func WithSection(sec Section, options ...SetupOption) SetupOption {
 			return err
 		}
 		s.sections[ns.name] = ns
+		s.sectionsOrdered = append(s.sectionsOrdered, ns)
 		return nil
 	}
 }
@@ -106,10 +107,45 @@ func WithOption(name string) SetupOption {
 func WithOptions(names ...string) SetupOption {
 	return func(s *Setup) error {
 		for _, n := range names {
-			s.options[n] = false
+			if _, ok := s.options[n]; !ok {
+				s.options[n] = nil
+				s.optionsOrdered = append(s.optionsOrdered, n)
+			}
 		}
 		return nil
 	}
+}
+
+// WithValidatedOption adds a value validator for the given option.
+// Validator functions accept the name of the option and its value, and
+// return an error if the value is not considered valid.
+func WithValidatedOption(name string, fn func(string, Value) error) SetupOption {
+	return func(s *Setup) error {
+		s.options[name] = append(s.options[name], fn)
+		return nil
+	}
+}
+
+// WithFilteredOption adds a filter that may modify the option's value.
+// Filters are applied after
+func WithFilteredOption(name string, fn func(string, Value) (Value, error)) SetupOption {
+	return func(s *Setup) error {
+		s.filters[name] = append(s.filters[name], fn)
+		return nil
+	}
+}
+
+// ValidateRequired is a validator that ensures an option is not blank.
+// Any nil value or string with length of zero is considered blank.
+func ValidateRequired(o string, v Value) error {
+	var nilValue Value
+	if v == nil || v == nilValue {
+		return errors.Errorf(`required option "%s" is empty`, o)
+	}
+	if vs, ok := v.(string); ok && len(vs) == 0 {
+		return errors.Errorf(`required option "%s" is empty`, o)
+	}
+	return nil
 }
 
 // WithRequiredOption adds a required option to the Config.
@@ -121,7 +157,9 @@ func WithRequiredOption(name string) SetupOption {
 func WithRequiredOptions(names ...string) SetupOption {
 	return func(s *Setup) error {
 		for _, n := range names {
-			s.options[n] = true
+			if err := WithValidatedOption(n, ValidateRequired)(s); err != nil {
+				return errors.Wrapf(err, "validation failed for %s", n)
+			}
 		}
 		return nil
 	}
@@ -134,7 +172,7 @@ func WithInheritedOption(name string) SetupOption {
 		if ps == nil {
 			return errors.Errorf("config: unable to inherit option '%s' for section %s; no parent found", name, s.name)
 		}
-		s.inherits[name] = struct{}{}
+		s.inherits = append(s.inherits, name)
 		return nil
 	}
 }

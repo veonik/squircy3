@@ -18,6 +18,7 @@ func pluginFromPlugins(m *plugin.Manager) (*configPlugin, error) {
 	return mp, nil
 }
 
+// ConfigurePlugin applies the given options to the registered config plugin.
 func ConfigurePlugin(m *plugin.Manager, opts ...SetupOption) error {
 	mp, err := pluginFromPlugins(m)
 	if err != nil {
@@ -26,6 +27,7 @@ func ConfigurePlugin(m *plugin.Manager, opts ...SetupOption) error {
 	return mp.Configure(opts...)
 }
 
+// Initialize is a plugin.Initializer that initializes a config plugin.
 func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
 	p := &configPlugin{}
 	return p, nil

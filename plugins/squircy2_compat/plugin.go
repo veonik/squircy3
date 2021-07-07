@@ -1,4 +1,4 @@
-package main
+package squircy2_compat
 
 import (
 	"code.dopame.me/veonik/squircy3/config"
@@ -11,24 +11,20 @@ import (
 	"github.com/pkg/errors"
 )
 
-const pluginName = "squircy2_compat"
-
-func main() {
-	plugin.Main(pluginName)
-}
+const PluginName = "squircy2_compat"
 
 func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
 	im, err := irc.FromPlugins(m)
 	if err != nil {
-		return nil, errors.Wrapf(err, "%s: required dependency missing (irc)", pluginName)
+		return nil, errors.Wrapf(err, "%s: required dependency missing (irc)", PluginName)
 	}
 	ev, err := event.FromPlugins(m)
 	if err != nil {
-		return nil, errors.Wrapf(err, "%s: required dependency missing (event)", pluginName)
+		return nil, errors.Wrapf(err, "%s: required dependency missing (event)", PluginName)
 	}
 	v, err := vm.FromPlugins(m)
 	if err != nil {
-		return nil, errors.Wrapf(err, "%s: required dependency missing (vm)", pluginName)
+		return nil, errors.Wrapf(err, "%s: required dependency missing (vm)", PluginName)
 	}
 	return &shimPlugin{NewHelperSet(ev, v, im)}, nil
 }
@@ -56,7 +52,7 @@ func (p *shimPlugin) Options() []config.SetupOption {
 }
 
 func (p *shimPlugin) Name() string {
-	return pluginName
+	return PluginName
 }
 
 func (p *shimPlugin) PrependRuntimeInitHandler() bool {

@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -16,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// A Registry provides basic commonjs-compatible facilities for a VM.
 type Registry struct {
 	basePath  string
 	modules   map[string]*Module
@@ -23,8 +23,11 @@ type Registry struct {
 	Transform func(in string) (string, error)
 }
 
+// NewRegistry creates a new registry with the given base path.
+// A Registry is designed to provide NodeJS type require() functions to goja.
 func NewRegistry(basePath string) *Registry {
 	if filepath.Base(basePath) == "node_modules" {
+		// use the path right above node_modules.
 		basePath = filepath.Dir(basePath)
 	}
 	r := &Registry{basePath: basePath, modules: make(map[string]*Module)}
@@ -41,6 +44,14 @@ func NewRegistry(basePath string) *Registry {
 	return r
 }
 
+func (r *Registry) Modules() []string {
+	var res []string
+	for k := range r.modules {
+		res = append(res, k)
+	}
+	return res
+}
+
 func (r *Registry) reset() {
 	for _, m := range r.modules {
 		// clear the evaluated values
@@ -55,15 +66,20 @@ func (r *Registry) Enable(runtime *goja.Runtime) {
 	if err := v.Set("SetModule", r.SetModule); err != nil {
 		logrus.Warnln("registry: error initializing runtime:", err)
 	}
+	if err := v.Set("Modules", r.Modules); err != nil {
+		logrus.Warnln("registry: error initializing runtime:", err)
+	}
 	runtime.Set("Registry", v)
 }
 
+// SetModule adds the Module to the Registry.
 func (r *Registry) SetModule(module *Module) {
 	module.registry = r
 	module.root = r.main.root
 	r.modules[module.Name] = module
 }
 
+// require performs the actual execution of required modules and files.
 func require(runtime *goja.Runtime, parent *Module, stack []string) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) != 1 {
@@ -82,38 +98,26 @@ func require(runtime *goja.Runtime, parent *Module, stack []string) func(goja.Fu
 			return module.value.Get("exports")
 		}
 		logrus.Debugln("requiring", module.FullPath())
-		etag := sha256.Sum256([]byte(module.Body))
-		equal := func(a, b [sha256.Size]byte) bool {
-			for i := 0; i < sha256.Size; i++ {
-				if a[i] != b[i] {
-					return false
-				}
-			}
-			return true
-		}
 		parse := func(body string) (*ast.Program, error) {
 			return parser.ParseFile(nil, module.FullPath(), "(function(require, module, exports) {\n"+body+"\n})", parser.Mode(0))
 		}
-		if !equal(module.etag, etag) {
-			body := module.Body
-			p, err := parse(body)
-			if err != nil && parent.registry.Transform != nil {
-				// try transforming and parsing again after a failure
-				body, err = parent.registry.Transform(body)
-				if err == nil {
-					p, err = parse(body)
-				}
+		body := module.Body
+		p, err := parse(body)
+		if err != nil && parent.registry.Transform != nil {
+			// try transforming and parsing again after a failure
+			body, err = parent.registry.Transform(body)
+			if err == nil {
+				p, err = parse(body)
 			}
-			if err != nil {
-				panic(runtime.NewGoError(err))
-			}
-			module.prog, err = goja.CompileAST(p, true)
-			if err != nil {
-				panic(runtime.NewGoError(err))
-			}
-			module.etag = etag
 		}
-		res, err := runtime.RunProgram(module.prog)
+		if err != nil {
+			panic(runtime.NewGoError(err))
+		}
+		prog, err := goja.CompileAST(p, true)
+		if err != nil {
+			panic(runtime.NewGoError(err))
+		}
+		res, err := runtime.RunProgram(prog)
 		if err != nil {
 			panic(runtime.NewGoError(err))
 		}
@@ -153,10 +157,6 @@ type Module struct {
 	Main string
 	Body string
 
-	// etag is the sha256 hash of the original file.
-	etag [sha256.Size]byte
-	prog *goja.Program
-
 	root     *Module
 	registry *Registry
 
@@ -164,6 +164,10 @@ type Module struct {
 	value *goja.Object
 }
 
+// Require loads the given name within the context of the Module.
+// Relative paths are supported, as are implicit index.js requires, and suffix-less requires.
+// If the name is a module, its package.json will be parsed to determine which script to execute.
+// This method does not evaluate the loaded module, see instead the package-level require function.
 func (m *Module) Require(name string) (*Module, error) {
 	if strings.HasPrefix(name, "./") || strings.HasPrefix(name, "../") {
 		return m.requireRelative(name)

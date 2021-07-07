@@ -1,4 +1,4 @@
-package main
+package squircy2_compat
 
 import (
 	"fmt"

@@ -1,8 +1,8 @@
-package main
+package node_compat
 
 import "code.dopame.me/veonik/squircy3/vm"
 
-// Module Net is a polyfill for the node net module.
+// Net is a polyfill for the node net module.
 var Net = &vm.Module{
 	Name: "net",
 	Main: "index",

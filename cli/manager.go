@@ -1,5 +1,5 @@
-// import "code.dopame.me/veonik/squircy3/cli"
-package cli
+// Package cli makes reusable the core parts of the squircy command.
+package cli // import "code.dopame.me/veonik/squircy3/cli"
 
 import (
 	"flag"
@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	tilde "gopkg.in/mattes/go-expand-tilde.v1"
 
 	"code.dopame.me/veonik/squircy3/config"
 	"code.dopame.me/veonik/squircy3/event"
@@ -20,13 +20,13 @@ import (
 )
 
 type Config struct {
-	RootDir      string   `toml:"root_path",flag:"root"`
+	RootDir      string   `toml:"root_path" flag:"root"`
 	PluginDir    string   `toml:"plugin_path"`
-	ExtraPlugins []string `toml:"extra_plugins"`
+	ExtraPlugins []string `toml:"extra_plugins" flag:"plugin"`
 
-	PluginOptions map[string]interface{}
+	PluginOptions map[string]interface{} `flag:"plugin_option"`
 
-	LogLevel string `toml:"log_level"`
+	LogLevel logrus.Level `toml:"log_level"`
 
 	// Specify additional plugins that are a part of the main executable.
 	LinkedPlugins []plugin.Initializer
@@ -40,7 +40,7 @@ type Manager struct {
 	stop chan os.Signal
 }
 
-func NewManager(rootDir string, pluginOptions map[string]interface{}, extraPlugins ...string) (*Manager, error) {
+func NewManager() (*Manager, error) {
 	m := plugin.NewManager()
 	// initialize only the config plugin so that it can be configured before
 	// other plugins are initialized
@@ -48,20 +48,45 @@ func NewManager(rootDir string, pluginOptions map[string]interface{}, extraPlugi
 	if err := configure(m); err != nil {
 		return nil, err
 	}
-	conf := Config{
-		RootDir:       rootDir,
-		PluginDir:     filepath.Join(rootDir, "plugins"),
-		ExtraPlugins:  extraPlugins,
-		PluginOptions: pluginOptions,
-	}
+	conf := Config{}
 	// configure the config plugin!
-	cf := filepath.Join(rootDir, "config.toml")
 	err := config.ConfigurePlugin(m,
+		config.WithRequiredOptions("root_path", "log_level"),
+		config.WithFilteredOption("root_path", func(s string, val config.Value) (config.Value, error) {
+			vs, ok := val.(string)
+			if !ok {
+				return nil, errors.Errorf("expected root_path to be string but got %T", vs)
+			}
+			vs, err := tilde.Expand(vs)
+			if err != nil {
+				return nil, errors.Errorf("failed to expand root directory: %s", err)
+			}
+			return vs, nil
+		}),
+		config.WithFilteredOption("log_level", func(s string, val config.Value) (config.Value, error) {
+			if v, ok := val.(logrus.Level); ok {
+				return v, nil
+			}
+			vs, ok := val.(string)
+			if !ok {
+				return nil, errors.Errorf("expected log_level to be string but got %T", vs)
+			}
+			lvl, err := logrus.ParseLevel(vs)
+			if err != nil {
+				lvl = logrus.InfoLevel
+				logrus.Warnf("config: defaulting to info log level: failed to parse %s as log level: %s", lvl, err)
+			}
+			return lvl, nil
+		}),
 		config.WithInitValue(&conf),
-		config.WithValuesFromTOMLFile(cf),
 		config.WithValuesFromFlagSet(flag.CommandLine),
-		config.WithValuesFromMap(conf.PluginOptions))
+		config.WithValuesFromMap(&conf.PluginOptions))
 	if err != nil {
+		return nil, err
+	}
+	cf := filepath.Join(conf.RootDir, "config.toml")
+	// Now that we have determined the root directory
+	if err := config.ConfigurePlugin(m, config.WithValuesFromTOMLFile(cf)); err != nil {
 		return nil, err
 	}
 	return &Manager{
@@ -97,6 +122,7 @@ func (manager *Manager) Start() error {
 
 	// load remaining extra plugins
 	for _, pl := range manager.ExtraPlugins {
+		logrus.Tracef("core: loading extra plugin: %s", pl)
 		if !filepath.IsAbs(pl) {
 			pl = filepath.Join(manager.PluginDir, pl)
 		}
@@ -162,7 +188,7 @@ func (manager *Manager) Loop() error {
 			case syscall.SIGTERM:
 				manager.Stop()
 			default:
-				logrus.Debugln("Received signal", s, "but not doing anything with it")
+				logrus.Debugln("core: received signal", s, "but not doing anything with it")
 			}
 		}
 	}

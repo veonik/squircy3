@@ -1,8 +1,18 @@
 plugin_path="/squircy/plugins"
 extra_plugins=[
+  # babel seamlessly transpiles javascript before executing it in squircy3, enabling the use of
+  # ES2017+ features in your scripts.
   "babel.so",
+
+  # node_compat is a barebones compatibility layer for NodeJS APIs. It supports a limited set of
+  # features such as parts of child_process, net, and crypto. Requires babel.
   "node_compat.so",
+
+  # squircy2_compat is a compatibility layer for legacy squIRCy2 scripts.
   "squircy2_compat.so",
+
+  # script is a plugin that loads scripts from a directory and executes them during application
+  # startup.
   "script.so",
 ]
 
@@ -26,12 +36,15 @@ enable=true
 scripts_path="/home/squircy/.squircy/scripts"
 
 [squircy2_compat]
+# set enable_file_api to true to allow scripts to read from the filesystem.
 enable_file_api=false
+# set the root directory of the filesystem access; files outside this root will not be loaded.
 file_api_root="/home/squircy/.squircy/files"
 #owner_nick=""
 #owner_host=""
 data_path="/home/squircy/.squircy/data"
 
 [node_compat]
+# set enable_exec to true to allow scripts to spawn child processes.
 enable_exec=false
 

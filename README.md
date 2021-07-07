@@ -36,18 +36,18 @@ directory as the root.
   does not contain config.toml or package.json, defaults will be created.
 
 ```bash
-out/squircy -interactive -root out
+out/squircy -interactive -root out/config
 ```
 
 This will automatically create `config.toml` and `package.json` within the 
-`out/` directory. The default configuration enables all plugins available
-and connects to freenode. As such, on the first run, expect to see some 
+`out/config/` directory. The default configuration enables all plugins available
+and connects to libera.chat. As such, on the first run, expect to see some 
 warnings.
 
 > Expect to see some warnings on the first run. All plugins are enabled, by
   default, so NodeJS dependencies must be installed for everything to function.
 
-Modify the default configuration in `out/config.toml` as necessary. Comment
+Modify the default configuration in `out/config/config.toml` as necessary. Comment
 out or remove the plugins listed under `extra_plugins` to disable any 
 unwanted plugins.
 
@@ -124,6 +124,17 @@ as shared libraries and loaded at runtime using the Go plugin API.
 - `squircy2_compat` provides a compatibility layer with 
   [squircy2](https://squircy.com).
 - `script` loads javascript files from a configured folder at app startup.
+
+#### Linking extra plugins at compile-time
+
+squircy3 supports building-in the extra plugins at compile-time so that they
+are included in the main binary rather than as separate shared object files.
+
+Pass `PLUGIN_TYPE=linked` to make to enable this functionality.
+
+```bash
+make all PLUGIN_TYPE=linked
+```
 
 
 ## Related Projects

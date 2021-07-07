@@ -1,11 +1,11 @@
-package main_test
+package node_compat_test
 
 import (
 	"strings"
 	"testing"
 	"time"
 
-	node_compat "code.dopame.me/veonik/squircy3/plugins/node_compat"
+	"code.dopame.me/veonik/squircy3/plugins/node_compat"
 )
 
 type test struct {

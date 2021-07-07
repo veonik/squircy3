@@ -1,8 +1,8 @@
-package main
+package node_compat
 
 import "code.dopame.me/veonik/squircy3/vm"
 
-// Module Crypto is a polyfill providing some functionality from the node
+// Crypto is a polyfill providing some functionality from the node
 // crypto module.
 var Crypto = &vm.Module{
 	Name: "crypto",

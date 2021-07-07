@@ -1,8 +1,8 @@
-package main
+package node_compat
 
 import "code.dopame.me/veonik/squircy3/vm"
 
-// Module ChildProcess is a polyfill for the child_process node module.
+// ChildProcess is a polyfill for the child_process node module.
 var ChildProcess = &vm.Module{
 	Name: "child_process",
 	Main: "index",

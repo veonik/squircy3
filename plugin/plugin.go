@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"plugin"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // A Plugin is the basic interface that all squircy3 plugins must implement.
@@ -31,6 +33,7 @@ type ShutdownHandler interface {
 	// amount of time to gracefully clean up before the application forcefully
 	// exits.
 	HandleShutdown()
+	Name() string
 }
 
 // An Initializer is a type that can create a Plugin implementation.
@@ -125,8 +128,19 @@ func (m *Manager) Shutdown() {
 	wg := &sync.WaitGroup{}
 	for _, h := range m.onShutdown {
 		wg.Add(1)
+		wait := make(chan struct{})
 		go func(sh ShutdownHandler) {
 			sh.HandleShutdown()
+			close(wait)
+		}(h)
+		go func(sh ShutdownHandler) {
+			select {
+			case <-wait:
+				break
+			case <-time.After(2 * time.Second):
+				logrus.Warnln("shutdown of", sh.Name(), "timed out after 2 seconds")
+				break
+			}
 			wg.Done()
 		}(h)
 	}

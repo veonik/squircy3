@@ -1,3 +1,4 @@
+// Package event is a concurrency-safe event dispatcher plugin for squircy3.
 package event // import "code.dopame.me/veonik/squircy3/event"
 
 import (
@@ -15,6 +16,7 @@ type Event struct {
 	handled bool
 }
 
+// StopPropagation will stop any further handlers being fired for this event.
 func (e *Event) StopPropagation() {
 	e.handled = true
 }
@@ -120,14 +122,14 @@ func (d *Dispatcher) Loop() {
 	}
 }
 
-// handlersForEvent returns a copy of the handlersIndex for the given event.
+// handlersForEvent returns a copy of the handlers for the given event.
 func (d *Dispatcher) handlersForEvent(name string) []Handler {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	return append([]Handler(nil), d.handlers[name]...)
 }
 
-// Emit will call bound handlersIndex for the given in event.
+// Emit will call bound handlers for the given in event.
 //
 // This method does not block unless the underlying channel becomes full.
 // The map received by this method is not copied; avoid writing to it once
@@ -136,7 +138,7 @@ func (d *Dispatcher) Emit(name string, data map[string]interface{}) {
 	d.emitting <- &Event{Name: name, Data: data}
 }
 
-// Bind adds the given handler to the list of handlersIndex for the event.
+// Bind adds the given handler to the list of handlers for the event.
 func (d *Dispatcher) Bind(name string, handler Handler) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -153,7 +155,7 @@ func (d *Dispatcher) Bind(name string, handler Handler) {
 	d.handlers[name] = append(d.handlers[name], handler)
 }
 
-// Unbind removes the given handler from the list of handlersIndex for the event.
+// Unbind removes the given handler from the list of handlers for the event.
 func (d *Dispatcher) Unbind(name string, handler Handler) {
 	d.mu.Lock()
 	defer d.mu.Unlock()

@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"fmt"
 	"math/rand"
 	"regexp"
 	"time"
@@ -61,7 +60,7 @@ func newResult(vmdone chan struct{}) *Result {
 func (r *Result) resolve(v goja.Value, err error) {
 	select {
 	case <-r.Ready:
-		fmt.Println("resolve called on already finished Result")
+		logrus.Debugln("resolve called on already finished Result")
 
 	default:
 		r.Error = err
