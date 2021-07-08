@@ -6,12 +6,11 @@ ARG plugin_type=shared
 RUN apk update && \
     apk add yarn alpine-sdk upx
 
+RUN go get -v github.com/gobuffalo/packr/v2/packr2
+
 WORKDIR /squircy
 
 COPY . .
-
-RUN go get -v github.com/gobuffalo/packr/v2/... && \
-    go install github.com/gobuffalo/packr/v2
 
 RUN go get -v ./...
 

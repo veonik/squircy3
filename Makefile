@@ -21,7 +21,7 @@ GOOS   ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 GOARM  ?= $(shell go env GOARM)
 CC     ?= $(shell go env CC)
-PACKR  ?= $(shell which packr || which packr2)
+PACKR  ?= $(shell which packr2)
 
 SQUIRCY_TARGET := $(OUTPUT_BASE)/squircy
 SQUIRCY_DIST   := $(SQUIRCY_TARGET)_$(GOOS)_$(GOARCH)$(GOARM)
@@ -81,7 +81,7 @@ $(PLUGIN_DIST): $(OUTPUT_BASE)/%_$(GOOS)_$(GOARCH)$(GOARM).so: $$(wildcard plugi
 
 $(SQUIRCY_TARGET): $(SOURCES)
 	go build -tags netgo $(EXTRA_TAGS) $(RACE) -ldflags "-X main.Version=$(SQUIRCY3_VERSION)-dev" \
-		-o $@ cmd/squircy/main.go cmd/squircy/repl.go $(LINKED_PLUGINS_FILE)
+		-o $@ cmd/squircy/main*.go cmd/squircy/repl.go $(LINKED_PLUGINS_FILE)
 
 $(SQUIRCY_DIST): $(OUTPUT_BASE) $(SOURCES)
 	cd cmd/squircy/defconf && \
@@ -91,7 +91,7 @@ $(SQUIRCY_DIST): $(OUTPUT_BASE) $(SOURCES)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) CC=$(CC) CGO_ENABLED=1 \
 		go build -tags netgo $(EXTRA_TAGS) \
 			-ldflags "-s -w -X main.Version=$(SQUIRCY3_VERSION)" \
-			-o $@ cmd/squircy/main.go cmd/squircy/repl.go $(LINKED_PLUGINS_FILE)
+			-o $@ cmd/squircy/main*.go cmd/squircy/repl.go $(LINKED_PLUGINS_FILE)
 	upx $@
 
 $(OUTPUT_BASE):

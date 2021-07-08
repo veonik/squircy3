@@ -10,5 +10,5 @@ func main() {
 }
 
 func Initialize(m *plugin.Manager) (plugin.Plugin, error) {
-	return Initialize(m)
+	return squircy2_compat.Initialize(m)
 }
