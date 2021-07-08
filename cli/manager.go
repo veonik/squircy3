@@ -121,10 +121,14 @@ func (manager *Manager) Start() error {
 	}
 
 	// load remaining extra plugins
+	pluginDir := manager.PluginDir
+	if !filepath.IsAbs(pluginDir) {
+		pluginDir = filepath.Join(manager.RootDir, pluginDir)
+	}
 	for _, pl := range manager.ExtraPlugins {
 		logrus.Tracef("core: loading extra plugin: %s", pl)
 		if !filepath.IsAbs(pl) {
-			pl = filepath.Join(manager.PluginDir, pl)
+			pl = filepath.Join(pluginDir, pl)
 		}
 		m.Register(plugin.InitializeFromFile(pl))
 	}

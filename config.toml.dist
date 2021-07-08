@@ -1,4 +1,4 @@
-plugin_path="/squircy/plugins"
+plugin_path="plugins"
 extra_plugins=[
   # babel seamlessly transpiles javascript before executing it in squircy3, enabling the use of
   # ES2017+ features in your scripts.
@@ -19,7 +19,7 @@ extra_plugins=[
 [irc]
 nick="squishyjones"
 user="mrjones"
-network="chat.freenode.net:6697"
+network="irc.libera.chat:6697"
 tls=true
 sasl=false
 #sasl_username=""
@@ -27,22 +27,22 @@ sasl=false
 #server_password=""
 
 [vm]
-modules_path="/home/squircy/.squircy/scripts/node_modules"
+modules_path="node_modules"
 
 [babel]
 enable=true
 
 [script]
-scripts_path="/home/squircy/.squircy/scripts"
+scripts_path="scripts"
 
 [squircy2_compat]
 # set enable_file_api to true to allow scripts to read from the filesystem.
 enable_file_api=false
 # set the root directory of the filesystem access; files outside this root will not be loaded.
-file_api_root="/home/squircy/.squircy/files"
+file_api_root="files"
 #owner_nick=""
 #owner_host=""
-data_path="/home/squircy/.squircy/data"
+data_path="data"
 
 [node_compat]
 # set enable_exec to true to allow scripts to spawn child processes.

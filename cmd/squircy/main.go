@@ -19,32 +19,32 @@ var Version = "SNAPSHOT"
 
 var interactive bool
 
-func unboxAll(rootDir string) error {
-	if _, err := os.Stat(rootDir); err == nil {
+func unboxAll(rootDir string) (modified bool, err error) {
+	if _, err = os.Stat(filepath.Join(rootDir, "config.toml")); err == nil {
 		// root directory already exists, don't muck with it
-		return nil
+		return false, nil
 	}
-	if err := os.MkdirAll(rootDir, 0755); err != nil {
-		return errors.Wrap(err, "failed to create root directory")
+	if err = os.MkdirAll(rootDir, 0755); err != nil {
+		return false, errors.Wrap(err, "failed to create root directory")
 	}
 	box := packr.New("defconf", "./defconf")
 	for _, f := range box.List() {
 		dst := filepath.Join(rootDir, f)
 		if _, err := os.Stat(dst); os.IsNotExist(err) {
 			if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-				return errors.Wrap(err, "failed to recreate directory")
+				return true, errors.Wrap(err, "failed to recreate directory")
 			}
 			logrus.Infof("Creating default %s", dst)
 			d, err := box.Find(f)
 			if err != nil {
-				return errors.Wrapf(err, "failed to get contents of boxed %s", f)
+				return true, errors.Wrapf(err, "failed to get contents of boxed %s", f)
 			}
 			if err := ioutil.WriteFile(dst, d, 0644); err != nil {
-				return errors.Wrapf(err, "failed to write unboxed file %s", f)
+				return true, errors.Wrapf(err, "failed to write unboxed file %s", f)
 			}
 		}
 	}
-	return nil
+	return true, nil
 }
 
 func init() {
@@ -77,8 +77,15 @@ func main() {
 	}
 	m.LinkedPlugins = append(m.LinkedPlugins, linkedPlugins...)
 	logrus.SetLevel(m.LogLevel)
-	if err := unboxAll(m.RootDir); err != nil {
+	if modified, err := unboxAll(m.RootDir); err != nil {
 		logrus.Fatalln("core: failed to unbox defaults:", err)
+	} else if modified {
+		// re-initialize the manager so that plugins load
+		m, err = cli.NewManager()
+		if err != nil {
+			logrus.Fatalln("core: error initializing squircy:", err)
+		}
+		logrus.SetLevel(m.LogLevel)
 	}
 	if err := m.Start(); err != nil {
 		logrus.Fatalln("core: error starting squircy:", err)

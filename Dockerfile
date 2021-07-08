@@ -22,23 +22,17 @@ FROM alpine:latest
 RUN apk update && \
     apk add ca-certificates curl gnupg yarn
 
-COPY config.toml.dist /home/squircy/.squircy/config.toml
+COPY --from=build /squircy/out/squircy_linux_amd64 /bin/squircy
 
-COPY package.json /home/squircy/.squircy/scripts/package.json
+COPY --from=build /squircy/out/*.so /home/squircy/.squircy/plugins/
 
-RUN cd /home/squircy/.squircy/scripts && \
-    yarn install
+RUN cd /home/squircy/.squircy/plugins && \
+    for f in `ls`; do ln -sf $f `echo $f | sed -e 's/_linux_amd64//'`; done
 
 RUN adduser -D -h /home/squircy squircy
 
 RUN chown -R squircy: /home/squircy
 
 USER squircy
-
-WORKDIR /squircy
-
-COPY --from=build /squircy/out/squircy_linux_amd64 /bin/squircy
-
-COPY --from=build /squircy/out/*.so /squircy/plugins/
 
 CMD /bin/squircy -interactive
