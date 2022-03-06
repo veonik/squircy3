@@ -124,6 +124,8 @@ as shared libraries and loaded at runtime using the Go plugin API.
 - `squircy2_compat` provides a compatibility layer with 
   [squircy2](https://squircy.com).
 - `script` loads javascript files from a configured folder at app startup.
+- `discord` provides integration with 
+  [discordgo](https://github.com/bwmarrin/discordgo).
 
 #### Linking extra plugins at compile-time
 
