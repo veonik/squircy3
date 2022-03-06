@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/dop251/goja v0.0.0-20210630164231-8f81471d5d0b
+	github.com/dop251/goja v0.0.0-20220214123719-b09a6bfa842f
 	github.com/fatih/structtag v1.2.0
 	github.com/gobuffalo/logger v1.0.4 // indirect
 	github.com/gobuffalo/packr/v2 v2.8.1
@@ -16,5 +16,6 @@ require (
 	github.com/thoj/go-ircevent v0.0.0-20210419090348-35410aa86c49
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
+	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/mattes/go-expand-tilde.v1 v1.0.0-20150330173918-cb884138e64c
 )
