@@ -14,6 +14,8 @@ import (
 	"code.dopame.me/veonik/squircy3/event"
 )
 
+var ErrNotConnected = errors.New("not connected")
+
 type Config struct {
 	Nick     string `toml:"nick"`
 	Username string `toml:"user"`
@@ -225,7 +227,7 @@ func (m *Manager) Disconnect() error {
 	conn := m.conn
 	m.mu.RUnlock()
 	if conn == nil {
-		return errors.New("not connected")
+		return ErrNotConnected
 	}
 	return conn.Quit()
 }

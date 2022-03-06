@@ -66,7 +66,9 @@ func (p *ircPlugin) HandleShutdown() {
 		return
 	}
 	if err := p.manager.Disconnect(); err != nil {
-		logrus.Warnln("irc: failed to disconnect before shutting down:", err)
+		if err != ErrNotConnected {
+			logrus.Warnln("irc: failed to disconnect before shutting down:", err)
+		}
 	}
 }
 
