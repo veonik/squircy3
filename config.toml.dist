@@ -14,6 +14,9 @@ extra_plugins=[
   # script is a plugin that loads scripts from a directory and executes them during application
   # startup.
   "script.so",
+
+  # discord is a plugin that enables discord interaction, ie. discord bot functionality.
+  "discord.so",
 ]
 
 [irc]
@@ -48,3 +51,8 @@ data_path="data"
 # set enable_exec to true to allow scripts to spawn child processes.
 enable_exec=false
 
+[discord]
+# bot authorization token
+#token=""
+#owner=""
+#activity=""
