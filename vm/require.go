@@ -89,21 +89,23 @@ func require(runtime *goja.Runtime, parent *Module, stack []string) func(goja.Fu
 		if len(v) == 0 {
 			panic(runtime.NewGoError(errors.New("argument cannot be blank")))
 		}
-		var err error
+		logrus.Tracef("vm: require(%s) called\n", v)
 		module, err := parent.Require(v)
 		if err != nil {
 			panic(runtime.NewGoError(err))
 		}
 		if module.value != nil {
+			logrus.Traceln("vm: returning already loaded module", module.Name)
 			return module.value.Get("exports")
 		}
-		logrus.Debugln("requiring", module.FullPath())
+		logrus.Debugln("vm: requiring", module.FullPath())
 		parse := func(body string) (*ast.Program, error) {
-			return parser.ParseFile(nil, module.FullPath(), "(function(require, module, exports) {\n"+body+"\n})", parser.Mode(0))
+			return parser.ParseFile(nil, module.FullPath(), "(function(require, module, exports) {\n"+body+"\n})", parser.Mode(0), parser.WithDisableSourceMaps)
 		}
 		body := module.Body
 		p, err := parse(body)
 		if err != nil && parent.registry.Transform != nil {
+			logrus.Tracef("vm: falling back to transformer for %s error: %s", module.Name, err)
 			// try transforming and parsing again after a failure
 			body, err = parent.registry.Transform(body)
 			if err == nil {
@@ -184,6 +186,7 @@ func (m *Module) Require(name string) (*Module, error) {
 		b, err := ioutil.ReadFile(filepath.Join(p, "package.json"))
 		if err == nil {
 			err = json.Unmarshal(b, &mod)
+			logrus.Traceln("vm: unmarshaled package.json as:", mod.Path, mod.Main)
 			if err != nil {
 				return nil, errors.Wrapf(err, "unable to read package.json for %s", name)
 			}
@@ -203,7 +206,12 @@ func (m *Module) Require(name string) (*Module, error) {
 		mod.Path = filepath.Dir(p)
 		mod.Main = filepath.Base(p)
 	}
-	return mod.requireRelative("./" + mod.Main)
+	mo, err := mod.requireRelative("./" + mod.Main)
+	if err != nil {
+		return nil, err
+	}
+	m.registry.modules[name] = mo
+	return mo, nil
 }
 
 func (m *Module) requireRelative(name string) (*Module, error) {
