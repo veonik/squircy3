@@ -71,7 +71,6 @@ func (p *nodeCompatPlugin) HandleRuntimeInit(r *goja.Runtime) {
 	}
 
 	_, err := r.RunString(`this.global = this.global || this;
-require('core-js-bundle');
 this.process = this.process || require('process/browser');
 require('regenerator-runtime');`)
 	if err != nil {

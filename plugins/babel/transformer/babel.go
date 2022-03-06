@@ -16,27 +16,11 @@ func New(r *goja.Runtime) (*Babel, error) {
 	v, err := b.runtime.RunString(`
 this.global = this.global || this;
 this.process = this.process || require('process/browser');
-// core-js does not set this up correctly, so we do it explicitly here
-Object.setPrototypeOf = function(O, proto) {
-	if(! (O instanceof Object)) {
-		throw new TypeError("Expected object");
-	}
-	if(proto !== null && ! (proto instanceof Object)) {
-		throw new TypeError("Expected prototype to be object or null");
-	}
-	O.__proto__ = proto;
-	return O;
-};
-Object.getPrototypeOf = function(O) {
-	if(! (O instanceof Object)) {
-		throw new TypeError("Expected object");
-	}
-	return O.__proto__;
-}
+require('es5-shim');
 require('core-js-bundle');
 this.Babel = require('@babel/standalone');
 var plugin = require('regenerator-transform');
-(function(src) { 
+(function(src) {
     var res = Babel.transform(src, {presets: ['es2015','es2016','es2017'], plugins: [plugin]}); 
     return res.code; 
 })`)

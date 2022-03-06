@@ -1,16 +1,16 @@
 {
   "private": true,
   "dependencies": {
-    "@babel/standalone": "7.5.5",
-    "assert": "2.0.0",
-    "assert-polyfill": "0.0.0",
-    "buffer": "5.2.1",
-    "core-js-bundle": "3.1.4",
+    "@babel/standalone": "^7.16.11",
+    "assert": "^2.0.0",
+    "assert-polyfill": "^0.0.0",
+    "buffer": "^6.0.0",
+    "core-js-bundle": "^3.1.4",
+    "es5-shim": "^4.6.5",
+    "error-polyfill": "0.1.2",
     "process": "0.11.10",
-    "regenerator-runtime": "0.13.3",
-    "regenerator-transform": "0.14.1"
-  },
-  "resolutions": {
-    "util": "0.12.1"
+    "readable-stream": "3.6.0",
+    "regenerator-runtime": "^0.13.3",
+    "regenerator-transform": "^0.14.1"
   }
 }

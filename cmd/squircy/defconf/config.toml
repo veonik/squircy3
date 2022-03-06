@@ -4,6 +4,7 @@ extra_plugins=[
   "node_compat.so",
   "squircy2_compat.so",
   "script.so",
+  "discord.so",
 ]
 
 [irc]
@@ -34,3 +35,8 @@ data_path="data"
 
 [node_compat]
 enable_exec=false
+
+[discord]
+token=""
+#owner=""
+#activity=""
