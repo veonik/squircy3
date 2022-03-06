@@ -31,12 +31,12 @@ ifeq ($(PLUGIN_TYPE),linked)
 	PLUGIN_TARGETS       :=
 	EXTRA_TAGS           := -tags linked_plugins
 	DIST_TARGETS         := $(SQUIRCY_DIST)
-	LINKED_PLUGINS_FILE  := cmd/squircy/linked_plugins.go
+	LINKED_PLUGINS_FILE  := cmd/squircy/plugins_linked.go
 else
 	PLUGIN_TARGETS       := $(patsubst %,$(OUTPUT_BASE)/%.so,$(PLUGINS))
 	EXTRA_TAGS           :=
 	DIST_TARGETS         := $(SQUIRCY_DIST) $(PLUGIN_DIST)
-	LINKED_PLUGINS_FILE  := cmd/squircy/shared_plugins.go
+	LINKED_PLUGINS_FILE  := cmd/squircy/plugins_shared.go
 endif
 
 TESTDATA_NODEMODS_TARGET := testdata/node_modules

@@ -1,3 +1,4 @@
+//go:build !linked_plugins
 // +build !linked_plugins
 
 package main
